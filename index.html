@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>中学英語フラッシュカード</title>
+<style>
+:root {
+  --c-bg: #0f0f1a;
+  --c-card-front: linear-gradient(145deg, #1e1b4b, #312e81);
+  --c-card-back:  linear-gradient(145deg, #0c2a4a, #1e3a5f);
+  --c-accent: #818cf8;
+  --c-ok: #4ade80;
+  --c-ng: #f87171;
+  --c-xp: #fbbf24;
+  --c-streak: #fb923c;
+  --radius: 20px;
+  --shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body {
+  height: 100%;
+  font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', sans-serif;
+  background: var(--c-bg);
+  color: #fff;
+  overflow: hidden;
+}
+
+/* ─── HEADER ─────────────────────────── */
+#header {
+  position: fixed; top: 0; left: 0; right: 0;
+  padding: 12px 16px 8px;
+  background: rgba(15,15,26,0.95);
+  backdrop-filter: blur(10px);
+  z-index: 100;
+  display: flex; align-items: center; gap: 10px;
+}
+.hd-streak { display:flex; align-items:center; gap:4px; font-size:.9rem; color:var(--c-streak); font-weight:700; }
+.hd-xp-wrap { flex:1; }
+.hd-xp-label { font-size:.65rem; color:#888; display:flex; justify-content:space-between; margin-bottom:3px; }
+.hd-xp-bar-bg { background:rgba(255,255,255,.1); border-radius:10px; height:6px; overflow:hidden; }
+.hd-xp-bar { height:100%; background:linear-gradient(90deg,#7c3aed,#f59e0b); border-radius:10px; transition:width .5s; }
+.hd-level { font-size:.8rem; color:var(--c-xp); font-weight:700; white-space:nowrap; }
+.hd-menu-btn { background:none; border:none; color:#aaa; font-size:1.4rem; cursor:pointer; padding:4px; }
+
+/* ─── MAIN AREA ──────────────────────── */
+#main {
+  height: 100%;
+  padding-top: 56px;
+  display: flex; flex-direction: column; align-items: center;
+  padding-bottom: 8px;
+}
+
+/* ─── GRADE TABS ─────────────────────── */
+#gradeTabs {
+  display: flex; gap: 8px; padding: 10px 16px 6px; width: 100%;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.grade-tab {
+  flex-shrink: 0;
+  padding: 6px 18px; border-radius: 30px; font-size: .8rem;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.06);
+  color: #aaa; cursor: pointer; transition: all .2s;
+}
+.grade-tab.active { background: #7c3aed; border-color: #a78bfa; color: #fff; font-weight: 700; }
+
+/* ─── PROGRESS ───────────────────────── */
+#progressWrap { width:100%; padding: 6px 20px 4px; }
+.prog-row { display:flex; justify-content:space-between; font-size:.72rem; color:#888; margin-bottom:4px; }
+.prog-bg { background:rgba(255,255,255,.08); border-radius:10px; height:5px; overflow:hidden; }
+.prog-fill { height:100%; background:linear-gradient(90deg,#7c3aed,#a855f7); border-radius:10px; transition:width .4s; }
+
+/* ─── CARD SCENE ─────────────────────── */
+#cardScene {
+  flex: 1;
+  width: 100%; max-width: 420px;
+  padding: 8px 16px;
+  display: flex; flex-direction: column; justify-content: center;
+  touch-action: pan-y;
+  position: relative;
+}
+#cardWrap {
+  perspective: 1200px;
+  cursor: pointer;
+  user-select: none;
+}
+#card {
+  width: 100%; height: 230px;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform .55s cubic-bezier(.4,0,.2,1);
+}
+#card.flipped { transform: rotateY(180deg); }
+#card.swipe-ok  { animation: swipeRight .35s forwards; }
+#card.swipe-ng  { animation: swipeLeft  .35s forwards; }
+@keyframes swipeRight {
+  to { transform: translateX(120%) rotate(20deg) rotateY(0deg); opacity:0; }
+}
+@keyframes swipeLeft {
+  to { transform: translateX(-120%) rotate(-20deg) rotateY(0deg); opacity:0; }
+}
+
+.card-face {
+  position: absolute; width:100%; height:100%;
+  backface-visibility: hidden;
+  border-radius: var(--radius);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 24px 20px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.card-front { background: var(--c-card-front); border:1px solid rgba(129,140,248,.25); }
+.card-back  { background: var(--c-card-back);  border:1px solid rgba(56,189,248,.2); transform: rotateY(180deg); }
+
+.c-grade-badge {
+  font-size: .65rem; letter-spacing:1.5px; text-transform:uppercase;
+  padding: 3px 12px; border-radius:20px; margin-bottom: 12px;
+  background: rgba(167,139,250,.15); color: #a78bfa;
+}
+.c-word { font-size: 2.4rem; font-weight:800; color:#f0edff; letter-spacing:.5px; }
+.c-phonetic { font-size:.9rem; color:#a78bfa; margin-top:6px; }
+.c-hint { font-size:.7rem; color:rgba(255,255,255,.25); margin-top:16px; }
+.c-pos { font-size:.72rem; background:rgba(56,189,248,.15); color:#7dd3fc;
+         border-radius:20px; padding:3px 12px; margin-bottom:10px; }
+.c-meaning { font-size:1.55rem; font-weight:700; color:#e0f2fe; }
+.c-example { font-size:.8rem; color:rgba(186,230,253,.65); font-style:italic;
+             line-height:1.55; margin-top:12px; }
+.c-example-ja { font-size:.72rem; color:rgba(186,230,253,.45); margin-top:4px; }
+
+/* Swipe hint arrows */
+#swipeHint {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:6px 4px;
+  pointer-events:none;
+}
+.swipe-hint-ng { color: rgba(248,113,113,.4); font-size:.75rem; display:flex; align-items:center; gap:4px; }
+.swipe-hint-ok { color: rgba(74,222,128,.4); font-size:.75rem; display:flex; align-items:center; gap:4px; }
+
+/* drag indicator */
+#dragIndicator {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  font-size:3rem; font-weight:900; opacity:0; pointer-events:none; transition:opacity .1s;
+  z-index:10;
+}
+
+/* ─── BOTTOM BUTTONS ─────────────────── */
+#bottomRow {
+  width: 100%; max-width: 420px;
+  padding: 6px 16px 10px;
+}
+#flipRow, #judgeRow { display:flex; justify-content:center; gap:14px; }
+.btn-flip {
+  background: linear-gradient(135deg,#6d28d9,#a855f7);
+  color:#fff; border:none; border-radius:50px;
+  padding: 14px 48px; font-size:1rem; font-weight:700;
+  cursor:pointer; box-shadow:0 8px 24px rgba(124,58,237,.4);
+  transition:transform .15s, box-shadow .15s;
+  width: 100%;
+}
+.btn-flip:active { transform:scale(.97); }
+.btn-ok, .btn-ng {
+  flex: 1; padding: 14px; border:none; border-radius:14px;
+  font-size:.95rem; font-weight:700; cursor:pointer;
+  transition:transform .15s, box-shadow .15s;
+}
+.btn-ok { background:linear-gradient(135deg,#166534,#4ade80); color:#fff;
+          box-shadow:0 8px 20px rgba(74,222,128,.3); }
+.btn-ng { background:linear-gradient(135deg,#991b1b,#f87171); color:#fff;
+          box-shadow:0 8px 20px rgba(248,113,113,.3); }
+.btn-ok:active, .btn-ng:active { transform:scale(.97); }
+
+/* ─── PANEL (badges / result) ─────────── */
+#overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.75);
+  backdrop-filter:blur(6px); z-index:200;
+  display:none; align-items:center; justify-content:center;
+  padding:20px;
+}
+#overlay.show { display:flex; }
+#panel {
+  background: linear-gradient(145deg,#1e1b3b,#16213e);
+  border:1px solid rgba(167,139,250,.2);
+  border-radius:24px; padding:28px 24px;
+  width:100%; max-width:380px;
+  max-height:90vh; overflow-y:auto;
+  text-align:center;
+}
+.panel-title { font-size:1.4rem; font-weight:800; margin-bottom:6px; }
+.panel-sub   { font-size:.85rem; color:#888; margin-bottom:20px; }
+
+/* Badge grid */
+.badge-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px; }
+.badge-item {
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+  border-radius:14px; padding:14px 8px; display:flex; flex-direction:column;
+  align-items:center; gap:6px;
+}
+.badge-item.earned { border-color:rgba(251,191,36,.4); background:rgba(251,191,36,.08); }
+.badge-item.earned .badge-icon { opacity:1; }
+.badge-item .badge-icon { font-size:2rem; opacity:.25; }
+.badge-item .badge-name { font-size:.65rem; color:#aaa; line-height:1.3; text-align:center; }
+.badge-item.earned .badge-name { color:#fbbf24; }
+
+/* result */
+.result-emoji { font-size:3.5rem; margin-bottom:12px; }
+.result-score { font-size:2rem; font-weight:800; margin-bottom:4px; }
+.result-detail { font-size:.85rem; color:#888; margin-bottom:20px; }
+.result-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px; }
+.result-box { background:rgba(255,255,255,.06); border-radius:12px; padding:14px; }
+.result-num { font-size:1.8rem; font-weight:800; }
+.result-num.ok { color:var(--c-ok); }
+.result-num.ng { color:var(--c-ng); }
+.result-lbl { font-size:.7rem; color:#888; margin-top:2px; }
+
+.btn-panel {
+  background:linear-gradient(135deg,#7c3aed,#a855f7);
+  color:#fff; border:none; border-radius:50px;
+  padding:14px 40px; font-size:1rem; font-weight:700;
+  cursor:pointer; width:100%; margin-top:8px;
+  transition:transform .15s;
+}
+.btn-panel:active { transform:scale(.97); }
+.btn-panel-outline {
+  background:transparent; border:1px solid rgba(255,255,255,.2);
+  color:#ccc; border-radius:50px; padding:12px 30px;
+  font-size:.9rem; cursor:pointer; width:100%;
+  margin-top:8px; transition:background .2s;
+}
+.btn-panel-outline:hover { background:rgba(255,255,255,.07); }
+
+/* ─── TOAST / NOTIFICATION ────────────── */
+#toast {
+  position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
+  background:rgba(30,27,75,.95); border:1px solid rgba(167,139,250,.3);
+  border-radius:50px; padding:10px 24px;
+  font-size:.85rem; font-weight:600; color:#c4b5fd;
+  pointer-events:none; opacity:0; transition:opacity .3s;
+  z-index:300; white-space:nowrap;
+}
+#toast.show { opacity:1; }
+
+/* ─── BADGE POPUP ────────────────────── */
+#badgePopup {
+  position:fixed; top:80px; left:50%; transform:translateX(-50%) translateY(-20px);
+  background:linear-gradient(135deg,#78350f,#92400e);
+  border:2px solid #fbbf24; border-radius:16px;
+  padding:14px 24px; text-align:center;
+  opacity:0; transition:all .4s; z-index:300;
+  pointer-events:none; min-width:220px;
+}
+#badgePopup.show { opacity:1; transform:translateX(-50%) translateY(0); }
+.bp-title { font-size:.65rem; color:#fbbf24; letter-spacing:2px; text-transform:uppercase; }
+.bp-emoji { font-size:2rem; }
+.bp-name  { font-size:.9rem; font-weight:700; color:#fef3c7; }
+
+/* ─── LEVEL UP OVERLAY ───────────────── */
+#levelUp {
+  position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+  z-index:400; pointer-events:none;
+}
+#levelUp.show { display:flex; }
+.lu-box {
+  background:linear-gradient(135deg,#1e1b4b,#312e81);
+  border:2px solid #818cf8; border-radius:24px;
+  padding:36px 40px; text-align:center;
+  animation: levelBounce .6s ease;
+}
+@keyframes levelBounce {
+  0%   { transform:scale(.5); opacity:0; }
+  60%  { transform:scale(1.1); }
+  100% { transform:scale(1); opacity:1; }
+}
+.lu-label { font-size:.75rem; color:#818cf8; letter-spacing:2px; text-transform:uppercase; margin-bottom:8px; }
+.lu-level { font-size:3.5rem; font-weight:900; color:#f0edff; }
+.lu-sub   { font-size:.9rem; color:#a78bfa; margin-top:8px; }
+
+/* ─── MENU PANEL ─────────────────────── */
+#menuPanel {
+  position:fixed; inset:0; background:rgba(0,0,0,.8);
+  backdrop-filter:blur(6px); z-index:200; display:none; align-items:flex-end;
+}
+#menuPanel.show { display:flex; }
+.menu-inner {
+  background:linear-gradient(145deg,#1e1b3b,#16213e);
+  border:1px solid rgba(167,139,250,.2);
+  border-radius:24px 24px 0 0; padding:20px 20px 32px;
+  width:100%; max-width:420px; margin:0 auto;
+}
+.menu-title { font-size:1.1rem; font-weight:700; margin-bottom:16px; text-align:center; color:#c4b5fd; }
+.menu-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+.menu-card {
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
+  border-radius:14px; padding:16px 12px; text-align:center; cursor:pointer;
+  transition:background .2s;
+}
+.menu-card:hover { background:rgba(255,255,255,.1); }
+.menu-card .mc-icon { font-size:1.8rem; margin-bottom:6px; }
+.menu-card .mc-label { font-size:.78rem; color:#aaa; }
+.menu-close {
+  width:100%; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15);
+  color:#ccc; border-radius:50px; padding:12px; font-size:.9rem; cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <div class="hd-streak" id="streakDisplay">🔥0</div>
+  <div class="hd-xp-wrap">
+    <div class="hd-xp-label">
+      <span id="xpLabel">Lv.1</span>
+      <span id="xpNum">0 XP</span>
+    </div>
+    <div class="hd-xp-bar-bg"><div class="hd-xp-bar" id="xpBar" style="width:0%"></div></div>
+  </div>
+  <div class="hd-level" id="levelLabel">Lv.1</div>
+  <button class="hd-menu-btn" onclick="openMenu()">☰</button>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- Grade tabs -->
+  <div id="gradeTabs">
+    <div class="grade-tab active" onclick="setGrade('all')" data-g="all">すべて</div>
+    <div class="grade-tab" onclick="setGrade('1')" data-g="1">中1</div>
+    <div class="grade-tab" onclick="setGrade('2')" data-g="2">中2</div>
+    <div class="grade-tab" onclick="setGrade('3')" data-g="3">中3</div>
+  </div>
+
+  <!-- Progress -->
+  <div id="progressWrap">
+    <div class="prog-row">
+      <span id="progText">1 / 60</span>
+      <span id="progPct">0%</span>
+    </div>
+    <div class="prog-bg"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+  </div>
+
+  <!-- Card scene -->
+  <div id="cardScene">
+    <div id="dragIndicator"></div>
+    <div id="swipeHint">
+      <div class="swipe-hint-ng">← 知らない</div>
+      <div class="swipe-hint-ok">知ってた →</div>
+    </div>
+    <div id="cardWrap">
+      <div id="card">
+        <div class="card-face card-front">
+          <div class="c-grade-badge" id="frontGrade">中1</div>
+          <div class="c-word" id="frontWord">—</div>
+          <div class="c-phonetic" id="frontPhonetic"></div>
+          <div class="c-hint">タップ or スワイプ</div>
+        </div>
+        <div class="card-face card-back">
+          <div class="c-pos" id="backPos"></div>
+          <div class="c-meaning" id="backMeaning">—</div>
+          <div class="c-example" id="backExample"></div>
+          <div class="c-example-ja" id="backExampleJa"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Buttons -->
+  <div id="bottomRow">
+    <div id="flipRow"><button class="btn-flip" onclick="flipCard()">🔄 意味を確認</button></div>
+    <div id="judgeRow" style="display:none">
+      <button class="btn-ng" onclick="judge(false)">✗ 知らない</button>
+      <button class="btn-ok" onclick="judge(true)">✓ 知ってた！</button>
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAY (badges / result) -->
+<div id="overlay" onclick="closeOverlay()">
+  <div id="panel" onclick="e=>e.stopPropagation()">
+    <div id="panelContent"></div>
+  </div>
+</div>
+
+<!-- MENU -->
+<div id="menuPanel" onclick="closeMenu()">
+  <div class="menu-inner" onclick="e=>e.stopPropagation()">
+    <div class="menu-title">📚 メニュー</div>
+    <div class="menu-grid">
+      <div class="menu-card" onclick="openBadgePanel();closeMenu()">
+        <div class="mc-icon">🏅</div>
+        <div class="mc-label">実績バッジ</div>
+      </div>
+      <div class="menu-card" onclick="shuffleDeck();closeMenu()">
+        <div class="mc-icon">🔀</div>
+        <div class="mc-label">シャッフル</div>
+      </div>
+      <div class="menu-card" onclick="resetSession();closeMenu()">
+        <div class="mc-icon">🔁</div>
+        <div class="mc-label">最初から</div>
+      </div>
+      <div class="menu-card" onclick="resetAllData();closeMenu()">
+        <div class="mc-icon">🗑️</div>
+        <div class="mc-label">データリセット</div>
+      </div>
+    </div>
+    <button class="menu-close" onclick="closeMenu()">閉じる</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- BADGE POPUP -->
+<div id="badgePopup">
+  <div class="bp-title">🏅 バッジ獲得！</div>
+  <div class="bp-emoji" id="bpEmoji"></div>
+  <div class="bp-name" id="bpName"></div>
+</div>
+
+<!-- LEVEL UP -->
+<div id="levelUp">
+  <div class="lu-box">
+    <div class="lu-label">⭐ レベルアップ！</div>
+    <div class="lu-level" id="luLevel"></div>
+    <div class="lu-sub" id="luSub"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  WORD DATA — 中学英語 60語
+// ═══════════════════════════════════════
+const WORDS = [
+  // ── 中1 (60語) ──────────────────────────
+  // 動詞
+  {g:"1",word:"want",ph:"/wɒnt/",pos:"動詞",ja:"欲しい・したい",ex:"I want to play soccer.",exJa:"私はサッカーをしたい。"},
+  {g:"1",word:"like",ph:"/laɪk/",pos:"動詞",ja:"好きだ・好む",ex:"She likes reading books.",exJa:"彼女は読書が好きだ。"},
+  {g:"1",word:"have",ph:"/hæv/",pos:"動詞",ja:"持っている",ex:"I have a dog.",exJa:"私は犬を飼っている。"},
+  {g:"1",word:"know",ph:"/noʊ/",pos:"動詞",ja:"知っている",ex:"Do you know his name?",exJa:"彼の名前を知っていますか？"},
+  {g:"1",word:"think",ph:"/θɪŋk/",pos:"動詞",ja:"思う・考える",ex:"I think it is a good idea.",exJa:"それは良い考えだと思う。"},
+  {g:"1",word:"speak",ph:"/spiːk/",pos:"動詞",ja:"話す",ex:"Can you speak English?",exJa:"英語を話せますか？"},
+  {g:"1",word:"study",ph:"/ˈstʌdi/",pos:"動詞",ja:"勉強する",ex:"I study Japanese every day.",exJa:"私は毎日日本語を勉強する。"},
+  {g:"1",word:"listen",ph:"/ˈlɪsən/",pos:"動詞",ja:"聞く・耳を傾ける",ex:"Please listen to me carefully.",exJa:"よく聞いてください。"},
+  {g:"1",word:"enjoy",ph:"/ɪnˈdʒɔɪ/",pos:"動詞",ja:"楽しむ",ex:"I enjoy playing tennis.",exJa:"私はテニスを楽しんでいる。"},
+  {g:"1",word:"teach",ph:"/tiːtʃ/",pos:"動詞",ja:"教える",ex:"She teaches math at school.",exJa:"彼女は学校で数学を教えている。"},
+  {g:"1",word:"understand",ph:"/ˌʌndəˈstænd/",pos:"動詞",ja:"理解する・わかる",ex:"I don't understand this problem.",exJa:"この問題がわからない。"},
+  {g:"1",word:"help",ph:"/help/",pos:"動詞",ja:"助ける・手伝う",ex:"Can you help me with this?",exJa:"これを手伝ってもらえますか？"},
+  {g:"1",word:"use",ph:"/juːz/",pos:"動詞",ja:"使う",ex:"I use a dictionary every day.",exJa:"私は毎日辞書を使う。"},
+  {g:"1",word:"try",ph:"/traɪ/",pos:"動詞",ja:"試みる・やってみる",ex:"Try your best!",exJa:"全力を尽くして！"},
+  {g:"1",word:"look",ph:"/lʊk/",pos:"動詞",ja:"見る・〜に見える",ex:"Look at the sky.",exJa:"空を見て。"},
+  {g:"1",word:"show",ph:"/ʃoʊ/",pos:"動詞",ja:"見せる・示す",ex:"Show me your picture.",exJa:"あなたの写真を見せて。"},
+  {g:"1",word:"call",ph:"/kɔːl/",pos:"動詞",ja:"呼ぶ・電話する",ex:"Please call me tonight.",exJa:"今夜電話してください。"},
+  {g:"1",word:"ask",ph:"/æsk/",pos:"動詞",ja:"尋ねる・頼む",ex:"Ask your teacher if you don't understand.",exJa:"わからなければ先生に聞いて。"},
+  {g:"1",word:"tell",ph:"/tel/",pos:"動詞",ja:"告げる・話す",ex:"Tell me about your hobby.",exJa:"趣味について話して。"},
+  {g:"1",word:"learn",ph:"/lɜːrn/",pos:"動詞",ja:"学ぶ・習う",ex:"I want to learn French.",exJa:"フランス語を習いたい。"},
+  {g:"1",word:"visit",ph:"/ˈvɪzɪt/",pos:"動詞",ja:"訪問する",ex:"I visited Kyoto last year.",exJa:"去年京都を訪問した。"},
+  {g:"1",word:"remember",ph:"/rɪˈmembər/",pos:"動詞",ja:"覚えている・思い出す",ex:"Remember to bring your lunch.",exJa:"お弁当を持ってくるのを忘れずに。"},
+  {g:"1",word:"forget",ph:"/fərˈɡet/",pos:"動詞",ja:"忘れる",ex:"Don't forget to do your homework.",exJa:"宿題をするのを忘れないで。"},
+  {g:"1",word:"live",ph:"/lɪv/",pos:"動詞",ja:"住む・生きる",ex:"I live in Tokyo.",exJa:"私は東京に住んでいる。"},
+  {g:"1",word:"meet",ph:"/miːt/",pos:"動詞",ja:"会う・出会う",ex:"I met her at the station.",exJa:"駅で彼女に会った。"},
+  {g:"1",word:"practice",ph:"/ˈpræktɪs/",pos:"動詞/名詞",ja:"練習する・練習",ex:"I practice the piano every day.",exJa:"私は毎日ピアノを練習する。"},
+  {g:"1",word:"write",ph:"/raɪt/",pos:"動詞",ja:"書く",ex:"Write your name on the paper.",exJa:"紙に名前を書いて。"},
+  {g:"1",word:"read",ph:"/riːd/",pos:"動詞",ja:"読む",ex:"I read a book before bed.",exJa:"寝る前に本を読む。"},
+  {g:"1",word:"play",ph:"/pleɪ/",pos:"動詞",ja:"遊ぶ・演奏する・プレーする",ex:"Let's play basketball after school.",exJa:"放課後バスケをしよう。"},
+  {g:"1",word:"bring",ph:"/brɪŋ/",pos:"動詞",ja:"持ってくる・連れてくる",ex:"Bring an umbrella with you.",exJa:"傘を持ってきて。"},
+  // 名詞
+  {g:"1",word:"friend",ph:"/frend/",pos:"名詞",ja:"友達・友人",ex:"He is my best friend.",exJa:"彼は私の親友だ。"},
+  {g:"1",word:"school",ph:"/skuːl/",pos:"名詞",ja:"学校",ex:"I go to school by bike.",exJa:"私は自転車で学校に行く。"},
+  {g:"1",word:"family",ph:"/ˈfæmɪli/",pos:"名詞",ja:"家族",ex:"My family has five members.",exJa:"私の家族は5人だ。"},
+  {g:"1",word:"music",ph:"/ˈmjuːzɪk/",pos:"名詞",ja:"音楽",ex:"I love listening to music.",exJa:"私は音楽を聴くのが大好きだ。"},
+  {g:"1",word:"sport",ph:"/spɔːrt/",pos:"名詞",ja:"スポーツ",ex:"My favorite sport is baseball.",exJa:"私の好きなスポーツは野球だ。"},
+  {g:"1",word:"book",ph:"/bʊk/",pos:"名詞",ja:"本",ex:"I borrowed a book from the library.",exJa:"図書館から本を借りた。"},
+  {g:"1",word:"food",ph:"/fuːd/",pos:"名詞",ja:"食べ物",ex:"Japanese food is delicious.",exJa:"日本食はおいしい。"},
+  {g:"1",word:"language",ph:"/ˈlæŋɡwɪdʒ/",pos:"名詞",ja:"言語・言葉",ex:"English is an international language.",exJa:"英語は国際語だ。"},
+  {g:"1",word:"country",ph:"/ˈkʌntri/",pos:"名詞",ja:"国・田舎",ex:"Japan is a beautiful country.",exJa:"日本は美しい国だ。"},
+  {g:"1",word:"city",ph:"/ˈsɪti/",pos:"名詞",ja:"都市・市",ex:"Tokyo is a big city.",exJa:"東京は大きな都市だ。"},
+  {g:"1",word:"animal",ph:"/ˈænɪməl/",pos:"名詞",ja:"動物",ex:"I like animals very much.",exJa:"私は動物がとても好きだ。"},
+  {g:"1",word:"nature",ph:"/ˈneɪtʃər/",pos:"名詞",ja:"自然",ex:"Let's protect nature.",exJa:"自然を守ろう。"},
+  {g:"1",word:"dream",ph:"/driːm/",pos:"名詞/動詞",ja:"夢・夢を見る",ex:"My dream is to be a doctor.",exJa:"私の夢は医者になることだ。"},
+  {g:"1",word:"team",ph:"/tiːm/",pos:"名詞",ja:"チーム",ex:"Our team won the game.",exJa:"私たちのチームが試合に勝った。"},
+  {g:"1",word:"idea",ph:"/aɪˈdiːə/",pos:"名詞",ja:"考え・アイデア",ex:"That is a great idea.",exJa:"それは素晴らしいアイデアだ。"},
+  {g:"1",word:"story",ph:"/ˈstɔːri/",pos:"名詞",ja:"話・物語",ex:"She told us a funny story.",exJa:"彼女は面白い話をしてくれた。"},
+  {g:"1",word:"question",ph:"/ˈkwɛstʃən/",pos:"名詞",ja:"質問・問題",ex:"Please answer my question.",exJa:"私の質問に答えてください。"},
+  {g:"1",word:"answer",ph:"/ˈænsər/",pos:"名詞/動詞",ja:"答え・答える",ex:"I couldn't answer the question.",exJa:"その質問に答えられなかった。"},
+  // 形容詞・副詞
+  {g:"1",word:"happy",ph:"/ˈhæpi/",pos:"形容詞",ja:"幸せな・嬉しい",ex:"I am very happy today.",exJa:"今日はとても幸せだ。"},
+  {g:"1",word:"important",ph:"/ɪmˈpɔːrtənt/",pos:"形容詞",ja:"重要な・大切な",ex:"Health is important.",exJa:"健康は大切だ。"},
+  {g:"1",word:"popular",ph:"/ˈpɒpjʊlər/",pos:"形容詞",ja:"人気のある",ex:"This song is very popular.",exJa:"この曲はとても人気だ。"},
+  {g:"1",word:"useful",ph:"/ˈjuːsfəl/",pos:"形容詞",ja:"役に立つ",ex:"This dictionary is very useful.",exJa:"この辞書はとても役に立つ。"},
+  {g:"1",word:"difficult",ph:"/ˈdɪfɪkəlt/",pos:"形容詞",ja:"難しい",ex:"This test was very difficult.",exJa:"このテストはとても難しかった。"},
+  {g:"1",word:"foreign",ph:"/ˈfɒrən/",pos:"形容詞",ja:"外国の",ex:"She can speak a foreign language.",exJa:"彼女は外国語を話せる。"},
+  {g:"1",word:"beautiful",ph:"/ˈbjuːtɪfəl/",pos:"形容詞",ja:"美しい・きれいな",ex:"The sunset was beautiful.",exJa:"夕焼けが美しかった。"},
+  {g:"1",word:"kind",ph:"/kaɪnd/",pos:"形容詞",ja:"親切な・優しい",ex:"She is very kind to everyone.",exJa:"彼女は誰にでも親切だ。"},
+  {g:"1",word:"busy",ph:"/ˈbɪzi/",pos:"形容詞",ja:"忙しい",ex:"I am busy with homework.",exJa:"宿題で忙しい。"},
+  {g:"1",word:"interesting",ph:"/ˈɪntrəstɪŋ/",pos:"形容詞",ja:"面白い・興味深い",ex:"This book is very interesting.",exJa:"この本はとても面白い。"},
+  {g:"1",word:"wonderful",ph:"/ˈwʌndərfəl/",pos:"形容詞",ja:"素晴らしい",ex:"We had a wonderful time.",exJa:"私たちは素晴らしい時間を過ごした。"},
+  {g:"1",word:"different",ph:"/ˈdɪfərənt/",pos:"形容詞",ja:"異なる・違う",ex:"Our opinions are different.",exJa:"私たちの意見は異なる。"},
+  {g:"1",word:"favorite",ph:"/ˈfeɪvərɪt/",pos:"形容詞/名詞",ja:"お気に入りの",ex:"Math is my favorite subject.",exJa:"数学は私の好きな科目だ。"},
+
+  // ── 中2 (70語) ──────────────────────────
+  // 動詞
+  {g:"2",word:"experience",ph:"/ɪkˈspɪəriəns/",pos:"名詞/動詞",ja:"経験・体験する",ex:"This is a great experience.",exJa:"これは素晴らしい経験だ。"},
+  {g:"2",word:"decide",ph:"/dɪˈsaɪd/",pos:"動詞",ja:"決める・決意する",ex:"I decided to study abroad.",exJa:"私は留学することを決めた。"},
+  {g:"2",word:"promise",ph:"/ˈprɒmɪs/",pos:"名詞/動詞",ja:"約束する・約束",ex:"He promised to call me.",exJa:"彼は電話すると約束した。"},
+  {g:"2",word:"communicate",ph:"/kəˈmjuːnɪkeɪt/",pos:"動詞",ja:"コミュニケーションをとる",ex:"It is important to communicate well.",exJa:"上手にコミュニケーションをとることが大切だ。"},
+  {g:"2",word:"receive",ph:"/rɪˈsiːv/",pos:"動詞",ja:"受け取る",ex:"I received a letter from her.",exJa:"私は彼女から手紙を受け取った。"},
+  {g:"2",word:"develop",ph:"/dɪˈveləp/",pos:"動詞",ja:"発展する・発達させる",ex:"The city has developed rapidly.",exJa:"その都市は急速に発展した。"},
+  {g:"2",word:"discover",ph:"/dɪˈskʌvər/",pos:"動詞",ja:"発見する",ex:"He discovered a new planet.",exJa:"彼は新しい惑星を発見した。"},
+  {g:"2",word:"express",ph:"/ɪkˈspres/",pos:"動詞",ja:"表現する",ex:"It is hard to express my feelings.",exJa:"気持ちを表現するのは難しい。"},
+  {g:"2",word:"compare",ph:"/kəmˈpeər/",pos:"動詞",ja:"比べる",ex:"Compare these two photos.",exJa:"この2枚の写真を比べてください。"},
+  {g:"2",word:"reduce",ph:"/rɪˈdjuːs/",pos:"動詞",ja:"減らす・削減する",ex:"We should reduce waste.",exJa:"私たちはごみを減らすべきだ。"},
+  {g:"2",word:"support",ph:"/səˈpɔːrt/",pos:"動詞/名詞",ja:"支援する・支持する",ex:"Friends support each other.",exJa:"友達はお互いを支え合う。"},
+  {g:"2",word:"achieve",ph:"/əˈtʃiːv/",pos:"動詞",ja:"達成する",ex:"You can achieve your dream.",exJa:"あなたは夢を達成できる。"},
+  {g:"2",word:"prepare",ph:"/prɪˈpeər/",pos:"動詞",ja:"準備する",ex:"Prepare for the test.",exJa:"テストの準備をしよう。"},
+  {g:"2",word:"introduce",ph:"/ˌɪntrəˈdjuːs/",pos:"動詞",ja:"紹介する",ex:"Let me introduce my friend.",exJa:"友達を紹介します。"},
+  {g:"2",word:"consider",ph:"/kənˈsɪdər/",pos:"動詞",ja:"考慮する・よく考える",ex:"Consider the feelings of others.",exJa:"他の人の気持ちを考慮しなさい。"},
+  {g:"2",word:"protect",ph:"/prəˈtekt/",pos:"動詞",ja:"守る・保護する",ex:"We must protect rare animals.",exJa:"希少動物を守らなければならない。"},
+  {g:"2",word:"produce",ph:"/prəˈdjuːs/",pos:"動詞",ja:"生産する・作る",ex:"Japan produces many cars.",exJa:"日本は多くの車を生産する。"},
+  {g:"2",word:"perform",ph:"/pərˈfɔːrm/",pos:"動詞",ja:"実行する・演じる・演奏する",ex:"She performed on stage.",exJa:"彼女は舞台で演じた。"},
+  {g:"2",word:"improve",ph:"/ɪmˈpruːv/",pos:"動詞",ja:"改善する・上達する",ex:"I want to improve my English.",exJa:"私は英語を上達させたい。"},
+  {g:"2",word:"collect",ph:"/kəˈlekt/",pos:"動詞",ja:"集める・収集する",ex:"I collect stamps.",exJa:"私は切手を集めている。"},
+  {g:"2",word:"accept",ph:"/əkˈsept/",pos:"動詞",ja:"受け入れる・承諾する",ex:"He accepted my invitation.",exJa:"彼は私の招待を受け入れた。"},
+  {g:"2",word:"continue",ph:"/kənˈtɪnjuː/",pos:"動詞",ja:"続ける・続く",ex:"Please continue your story.",exJa:"話を続けてください。"},
+  {g:"2",word:"change",ph:"/tʃeɪndʒ/",pos:"動詞/名詞",ja:"変える・変わる・変化",ex:"Seasons change four times a year.",exJa:"季節は年に4回変わる。"},
+  {g:"2",word:"increase",ph:"/ɪnˈkriːs/",pos:"動詞",ja:"増える・増やす",ex:"The population has increased.",exJa:"人口が増えた。"},
+  {g:"2",word:"connect",ph:"/kəˈnekt/",pos:"動詞",ja:"つなぐ・接続する",ex:"The internet connects the world.",exJa:"インターネットが世界をつなぐ。"},
+  {g:"2",word:"provide",ph:"/prəˈvaɪd/",pos:"動詞",ja:"提供する・供給する",ex:"The school provides free lunch.",exJa:"その学校は無料の昼食を提供する。"},
+  {g:"2",word:"solve",ph:"/sɒlv/",pos:"動詞",ja:"解決する",ex:"We need to solve this problem.",exJa:"この問題を解決する必要がある。"},
+  {g:"2",word:"explain",ph:"/ɪkˈspleɪn/",pos:"動詞",ja:"説明する",ex:"Please explain it in English.",exJa:"英語で説明してください。"},
+  {g:"2",word:"imagine",ph:"/ɪˈmædʒɪn/",pos:"動詞",ja:"想像する",ex:"Imagine a world without war.",exJa:"戦争のない世界を想像して。"},
+  {g:"2",word:"realize",ph:"/ˈriːəlaɪz/",pos:"動詞",ja:"気づく・実現する",ex:"I realized I was wrong.",exJa:"私は間違っていたと気づいた。"},
+  {g:"2",word:"depend",ph:"/dɪˈpend/",pos:"動詞",ja:"頼る・次第である",ex:"It depends on the weather.",exJa:"天気次第だ。"},
+  {g:"2",word:"suggest",ph:"/səˈdʒest/",pos:"動詞",ja:"提案する・示唆する",ex:"I suggest we go by train.",exJa:"電車で行くことを提案します。"},
+  {g:"2",word:"avoid",ph:"/əˈvɔɪd/",pos:"動詞",ja:"避ける",ex:"Avoid eating too much sugar.",exJa:"砂糖の取りすぎを避けて。"},
+  {g:"2",word:"share",ph:"/ʃeər/",pos:"動詞",ja:"共有する・分ける",ex:"Share your ideas with the class.",exJa:"クラスでアイデアを共有して。"},
+  {g:"2",word:"spread",ph:"/spred/",pos:"動詞",ja:"広がる・広める",ex:"The news spread quickly.",exJa:"そのニュースは素早く広まった。"},
+  // 名詞
+  {g:"2",word:"culture",ph:"/ˈkʌltʃər/",pos:"名詞",ja:"文化",ex:"I am interested in Japanese culture.",exJa:"私は日本文化に興味がある。"},
+  {g:"2",word:"volunteer",ph:"/ˌvɒlənˈtɪər/",pos:"名詞/動詞",ja:"ボランティア",ex:"She does volunteer work every weekend.",exJa:"彼女は毎週末ボランティアをする。"},
+  {g:"2",word:"environment",ph:"/ɪnˈvaɪrənmənt/",pos:"名詞",ja:"環境",ex:"We must protect the environment.",exJa:"私たちは環境を守らなければならない。"},
+  {g:"2",word:"solution",ph:"/səˈluːʃən/",pos:"名詞",ja:"解決策・解答",ex:"We need to find a solution.",exJa:"解決策を見つける必要がある。"},
+  {g:"2",word:"relationship",ph:"/rɪˈleɪʃənʃɪp/",pos:"名詞",ja:"関係・人間関係",ex:"They have a good relationship.",exJa:"彼らは良い関係だ。"},
+  {g:"2",word:"opinion",ph:"/əˈpɪnjən/",pos:"名詞",ja:"意見・考え",ex:"What is your opinion?",exJa:"あなたの意見は何ですか？"},
+  {g:"2",word:"career",ph:"/kəˈrɪər/",pos:"名詞",ja:"キャリア・職業",ex:"She has a successful career.",exJa:"彼女は成功したキャリアを持っている。"},
+  {g:"2",word:"technology",ph:"/tekˈnɒlədʒi/",pos:"名詞",ja:"テクノロジー・技術",ex:"Technology changes our lives.",exJa:"テクノロジーが私たちの生活を変える。"},
+  {g:"2",word:"information",ph:"/ˌɪnfəˈmeɪʃən/",pos:"名詞",ja:"情報",ex:"I found useful information online.",exJa:"ネットで有益な情報を見つけた。"},
+  {g:"2",word:"energy",ph:"/ˈenədʒi/",pos:"名詞",ja:"エネルギー・活力",ex:"Solar energy is clean.",exJa:"太陽エネルギーはクリーンだ。"},
+  {g:"2",word:"community",ph:"/kəˈmjuːnɪti/",pos:"名詞",ja:"地域社会・コミュニティ",ex:"I am proud of my community.",exJa:"私は地域社会を誇りに思う。"},
+  {g:"2",word:"knowledge",ph:"/ˈnɒlɪdʒ/",pos:"名詞",ja:"知識",ex:"Knowledge is power.",exJa:"知識は力だ。"},
+  {g:"2",word:"ability",ph:"/əˈbɪlɪti/",pos:"名詞",ja:"能力・才能",ex:"He has great ability in math.",exJa:"彼は数学の才能がある。"},
+  {g:"2",word:"memory",ph:"/ˈmeməri/",pos:"名詞",ja:"記憶・思い出",ex:"I have happy memories of childhood.",exJa:"子供の頃の楽しい思い出がある。"},
+  {g:"2",word:"history",ph:"/ˈhɪstəri/",pos:"名詞",ja:"歴史",ex:"I like studying history.",exJa:"私は歴史を勉強するのが好きだ。"},
+  {g:"2",word:"science",ph:"/ˈsaɪəns/",pos:"名詞",ja:"科学",ex:"Science helps us understand the world.",exJa:"科学は世界を理解する助けになる。"},
+  {g:"2",word:"society",ph:"/səˈsaɪɪti/",pos:"名詞",ja:"社会",ex:"We live in a complex society.",exJa:"私たちは複雑な社会に生きている。"},
+  {g:"2",word:"purpose",ph:"/ˈpɜːrpəs/",pos:"名詞",ja:"目的・目標",ex:"What is the purpose of this project?",exJa:"このプロジェクトの目的は何ですか？"},
+  {g:"2",word:"effort",ph:"/ˈefərt/",pos:"名詞",ja:"努力",ex:"Your effort will pay off.",exJa:"努力は報われる。"},
+  {g:"2",word:"habit",ph:"/ˈhæbɪt/",pos:"名詞",ja:"習慣",ex:"Reading is a good habit.",exJa:"読書は良い習慣だ。"},
+  // 形容詞
+  {g:"2",word:"traditional",ph:"/trəˈdɪʃənəl/",pos:"形容詞",ja:"伝統的な",ex:"This is a traditional Japanese dish.",exJa:"これは伝統的な日本料理だ。"},
+  {g:"2",word:"serious",ph:"/ˈsɪəriəs/",pos:"形容詞",ja:"深刻な・真剣な",ex:"This is a serious problem.",exJa:"これは深刻な問題だ。"},
+  {g:"2",word:"active",ph:"/ˈæktɪv/",pos:"形容詞",ja:"活発な・積極的な",ex:"She is active in club activities.",exJa:"彼女は部活動に積極的だ。"},
+  {g:"2",word:"careful",ph:"/ˈkeərfəl/",pos:"形容詞",ja:"注意深い・慎重な",ex:"Be careful when crossing the street.",exJa:"道路を渡るときは注意して。"},
+  {g:"2",word:"creative",ph:"/kriˈeɪtɪv/",pos:"形容詞",ja:"創造的な・独創的な",ex:"She is a creative writer.",exJa:"彼女は独創的な作家だ。"},
+  {g:"2",word:"honest",ph:"/ˈɒnɪst/",pos:"形容詞",ja:"正直な",ex:"Always be honest with others.",exJa:"いつも正直でいなさい。"},
+  {g:"2",word:"curious",ph:"/ˈkjʊəriəs/",pos:"形容詞",ja:"好奇心旺盛な",ex:"Children are naturally curious.",exJa:"子どもは生まれながら好奇心旺盛だ。"},
+  {g:"2",word:"confident",ph:"/ˈkɒnfɪdənt/",pos:"形容詞",ja:"自信のある",ex:"Be confident in yourself.",exJa:"自分に自信を持って。"},
+  {g:"2",word:"patient",ph:"/ˈpeɪʃənt/",pos:"形容詞",ja:"忍耐強い・辛抱強い",ex:"Be patient and keep trying.",exJa:"辛抱強く挑戦し続けて。"},
+  {g:"2",word:"familiar",ph:"/fəˈmɪliər/",pos:"形容詞",ja:"馴染みのある・よく知っている",ex:"This song sounds familiar.",exJa:"この曲は聞いたことがある。"},
+
+  // ── 中3 (70語) ──────────────────────────
+  // 動詞
+  {g:"3",word:"contribute",ph:"/kənˈtrɪbjuːt/",pos:"動詞",ja:"貢献する・寄付する",ex:"Everyone can contribute to society.",exJa:"誰もが社会に貢献できる。"},
+  {g:"3",word:"overcome",ph:"/ˌoʊvərˈkʌm/",pos:"動詞",ja:"乗り越える・克服する",ex:"She overcame many difficulties.",exJa:"彼女は多くの困難を乗り越えた。"},
+  {g:"3",word:"influence",ph:"/ˈɪnfluəns/",pos:"名詞/動詞",ja:"影響・影響を与える",ex:"Music has a great influence on us.",exJa:"音楽は私たちに大きな影響を与える。"},
+  {g:"3",word:"respect",ph:"/rɪˈspekt/",pos:"名詞/動詞",ja:"尊重する・尊敬する",ex:"We should respect other cultures.",exJa:"他の文化を尊重すべきだ。"},
+  {g:"3",word:"reflect",ph:"/rɪˈflekt/",pos:"動詞",ja:"反映する・振り返る",ex:"Her words reflect her feelings.",exJa:"彼女の言葉は気持ちを反映している。"},
+  {g:"3",word:"establish",ph:"/ɪˈstæblɪʃ/",pos:"動詞",ja:"設立する・確立する",ex:"The school was established in 1900.",exJa:"その学校は1900年に設立された。"},
+  {g:"3",word:"require",ph:"/rɪˈkwaɪər/",pos:"動詞",ja:"必要とする・求める",ex:"This job requires skill.",exJa:"この仕事はスキルが必要だ。"},
+  {g:"3",word:"broadcast",ph:"/ˈbrɔːdkɑːst/",pos:"動詞/名詞",ja:"放送する・放送",ex:"The game will be broadcast live.",exJa:"その試合はライブ放送される。"},
+  {g:"3",word:"cooperate",ph:"/koʊˈɒpəreɪt/",pos:"動詞",ja:"協力する",ex:"We must cooperate with each other.",exJa:"私たちはお互いに協力しなければならない。"},
+  {g:"3",word:"investigate",ph:"/ɪnˈvestɪɡeɪt/",pos:"動詞",ja:"調査する・研究する",ex:"Scientists investigate the cause.",exJa:"科学者たちはその原因を調査する。"},
+  {g:"3",word:"maintain",ph:"/meɪnˈteɪn/",pos:"動詞",ja:"維持する・保持する",ex:"We must maintain peace.",exJa:"私たちは平和を維持しなければならない。"},
+  {g:"3",word:"represent",ph:"/ˌreprɪˈzent/",pos:"動詞",ja:"代表する・表す",ex:"She represents our school.",exJa:"彼女は私たちの学校を代表する。"},
+  {g:"3",word:"involve",ph:"/ɪnˈvɒlv/",pos:"動詞",ja:"関係する・含む",ex:"This plan involves many people.",exJa:"この計画は多くの人が関わっている。"},
+  {g:"3",word:"promote",ph:"/prəˈmoʊt/",pos:"動詞",ja:"推進する・宣伝する",ex:"This campaign promotes recycling.",exJa:"このキャンペーンはリサイクルを推進する。"},
+  {g:"3",word:"participate",ph:"/pɑːrˈtɪsɪpeɪt/",pos:"動詞",ja:"参加する",ex:"Everyone should participate.",exJa:"全員が参加すべきだ。"},
+  {g:"3",word:"demonstrate",ph:"/ˈdemənstreɪt/",pos:"動詞",ja:"示す・証明する",ex:"She demonstrated great courage.",exJa:"彼女は大きな勇気を示した。"},
+  {g:"3",word:"encourage",ph:"/ɪnˈkʌrɪdʒ/",pos:"動詞",ja:"励ます・促す",ex:"The teacher encouraged the students.",exJa:"先生が生徒たちを励ました。"},
+  {g:"3",word:"evaluate",ph:"/ɪˈvæljueɪt/",pos:"動詞",ja:"評価する",ex:"We evaluate progress each month.",exJa:"私たちは毎月進捗を評価する。"},
+  {g:"3",word:"succeed",ph:"/səkˈsiːd/",pos:"動詞",ja:"成功する",ex:"If you try hard, you will succeed.",exJa:"努力すれば成功する。"},
+  {g:"3",word:"translate",ph:"/trænsˈleɪt/",pos:"動詞",ja:"翻訳する",ex:"Translate this sentence into Japanese.",exJa:"この文を日本語に翻訳して。"},
+  {g:"3",word:"predict",ph:"/prɪˈdɪkt/",pos:"動詞",ja:"予測する・予言する",ex:"Scientists predict climate change.",exJa:"科学者たちは気候変動を予測する。"},
+  {g:"3",word:"debate",ph:"/dɪˈbeɪt/",pos:"動詞/名詞",ja:"議論する・討論",ex:"We debated the topic in class.",exJa:"クラスでそのトピックを議論した。"},
+  {g:"3",word:"propose",ph:"/prəˈpoʊz/",pos:"動詞",ja:"提案する",ex:"She proposed a new plan.",exJa:"彼女は新しい計画を提案した。"},
+  {g:"3",word:"analyze",ph:"/ˈænəlaɪz/",pos:"動詞",ja:"分析する",ex:"Analyze the data carefully.",exJa:"データを注意深く分析して。"},
+  {g:"3",word:"summarize",ph:"/ˈsʌməraɪz/",pos:"動詞",ja:"要約する",ex:"Please summarize the article.",exJa:"その記事を要約してください。"},
+  // 名詞
+  {g:"3",word:"opportunity",ph:"/ˌɒpərˈtjuːnɪti/",pos:"名詞",ja:"機会・チャンス",ex:"This is a great opportunity.",exJa:"これは素晴らしい機会だ。"},
+  {g:"3",word:"responsibility",ph:"/rɪˌspɒnsəˈbɪlɪti/",pos:"名詞",ja:"責任",ex:"We have a responsibility to act.",exJa:"私たちは行動する責任がある。"},
+  {g:"3",word:"challenge",ph:"/ˈtʃælɪndʒ/",pos:"名詞/動詞",ja:"挑戦・課題",ex:"Let's take on the challenge.",exJa:"挑戦してみよう。"},
+  {g:"3",word:"diversity",ph:"/daɪˈvɜːrsɪti/",pos:"名詞",ja:"多様性",ex:"Diversity makes our society richer.",exJa:"多様性は社会を豊かにする。"},
+  {g:"3",word:"generation",ph:"/ˌdʒenəˈreɪʃən/",pos:"名詞",ja:"世代",ex:"The younger generation loves technology.",exJa:"若い世代はテクノロジーが大好きだ。"},
+  {g:"3",word:"conflict",ph:"/ˈkɒnflɪkt/",pos:"名詞",ja:"対立・衝突・葛藤",ex:"We must solve the conflict peacefully.",exJa:"その対立を平和的に解決しなければならない。"},
+  {g:"3",word:"equality",ph:"/ɪˈkwɒlɪti/",pos:"名詞",ja:"平等",ex:"We believe in equality for all.",exJa:"私たちはすべての人の平等を信じる。"},
+  {g:"3",word:"attitude",ph:"/ˈætɪtjuːd/",pos:"名詞",ja:"態度・姿勢",ex:"A positive attitude is important.",exJa:"前向きな姿勢が大切だ。"},
+  {g:"3",word:"cooperation",ph:"/koʊˌɒpəˈreɪʃən/",pos:"名詞",ja:"協力・協調",ex:"Cooperation is the key to success.",exJa:"協力が成功の鍵だ。"},
+  {g:"3",word:"tradition",ph:"/trəˈdɪʃən/",pos:"名詞",ja:"伝統・慣習",ex:"Japan has many beautiful traditions.",exJa:"日本には美しい伝統がたくさんある。"},
+  {g:"3",word:"innovation",ph:"/ˌɪnəˈveɪʃən/",pos:"名詞",ja:"革新・イノベーション",ex:"Innovation drives economic growth.",exJa:"革新が経済成長を促進する。"},
+  {g:"3",word:"pollution",ph:"/pəˈluːʃən/",pos:"名詞",ja:"汚染・公害",ex:"Air pollution is a serious problem.",exJa:"大気汚染は深刻な問題だ。"},
+  {g:"3",word:"poverty",ph:"/ˈpɒvərti/",pos:"名詞",ja:"貧困",ex:"We should help people in poverty.",exJa:"貧困にある人々を助けるべきだ。"},
+  {g:"3",word:"population",ph:"/ˌpɒpjʊˈleɪʃən/",pos:"名詞",ja:"人口",ex:"The world population is increasing.",exJa:"世界の人口が増えている。"},
+  {g:"3",word:"economy",ph:"/ɪˈkɒnəmi/",pos:"名詞",ja:"経済",ex:"The economy is recovering slowly.",exJa:"経済はゆっくりと回復している。"},
+  {g:"3",word:"achievement",ph:"/əˈtʃiːvmənt/",pos:"名詞",ja:"達成・業績・成果",ex:"This is a great achievement.",exJa:"これは素晴らしい業績だ。"},
+  {g:"3",word:"perspective",ph:"/pərˈspektɪv/",pos:"名詞",ja:"見方・視点・観点",ex:"Try to see things from a different perspective.",exJa:"違う視点から物事を見てみよう。"},
+  {g:"3",word:"consequence",ph:"/ˈkɒnsɪkwəns/",pos:"名詞",ja:"結果・影響・因果",ex:"Think about the consequences of your actions.",exJa:"行動の結果について考えなさい。"},
+  {g:"3",word:"communication",ph:"/kəˌmjuːnɪˈkeɪʃən/",pos:"名詞",ja:"コミュニケーション・通信",ex:"Good communication is key.",exJa:"良いコミュニケーションが大切だ。"},
+  {g:"3",word:"government",ph:"/ˈɡʌvənmənt/",pos:"名詞",ja:"政府・政治",ex:"The government should solve this issue.",exJa:"政府はこの問題を解決すべきだ。"},
+  {g:"3",word:"awareness",ph:"/əˈweənəs/",pos:"名詞",ja:"意識・認識",ex:"We need to raise awareness.",exJa:"意識を高める必要がある。"},
+  {g:"3",word:"justice",ph:"/ˈdʒʌstɪs/",pos:"名詞",ja:"正義・公正",ex:"We must fight for justice.",exJa:"正義のために戦わなければならない。"},
+  {g:"3",word:"welfare",ph:"/ˈwelfeər/",pos:"名詞",ja:"福祉・幸福",ex:"The government cares about public welfare.",exJa:"政府は公共の福祉を大切にしている。"},
+  {g:"3",word:"volunteer",ph:"/ˌvɒlənˈtɪər/",pos:"名詞/動詞",ja:"ボランティア・自発的に行う",ex:"I want to volunteer abroad.",exJa:"海外でボランティアをしたい。"},
+  {g:"3",word:"resolution",ph:"/ˌrezəˈluːʃən/",pos:"名詞",ja:"解決・決意・決議",ex:"I made a resolution to study harder.",exJa:"もっと勉強するという決意をした。"},
+  // 形容詞
+  {g:"3",word:"global",ph:"/ˈɡloʊbəl/",pos:"形容詞",ja:"地球規模の・世界的な",ex:"Global warming is a serious issue.",exJa:"地球温暖化は深刻な問題だ。"},
+  {g:"3",word:"necessary",ph:"/ˈnesəsɛri/",pos:"形容詞",ja:"必要な・必要不可欠な",ex:"Water is necessary for life.",exJa:"水は生きるために必要だ。"},
+  {g:"3",word:"optimistic",ph:"/ˌɒptɪˈmɪstɪk/",pos:"形容詞",ja:"楽観的な",ex:"Stay optimistic about the future.",exJa:"将来について楽観的でいよう。"},
+  {g:"3",word:"sustainable",ph:"/səˈsteɪnəbəl/",pos:"形容詞",ja:"持続可能な",ex:"We need sustainable energy sources.",exJa:"持続可能なエネルギーが必要だ。"},
+  {g:"3",word:"diverse",ph:"/daɪˈvɜːrs/",pos:"形容詞",ja:"多様な",ex:"Our team is diverse and talented.",exJa:"私たちのチームは多様で才能がある。"},
+  {g:"3",word:"effective",ph:"/ɪˈfektɪv/",pos:"形容詞",ja:"効果的な",ex:"Exercise is an effective way to stay healthy.",exJa:"運動は健康を維持する効果的な方法だ。"},
+  {g:"3",word:"efficient",ph:"/ɪˈfɪʃənt/",pos:"形容詞",ja:"効率的な",ex:"This machine is very efficient.",exJa:"この機械はとても効率的だ。"},
+  {g:"3",word:"independent",ph:"/ˌɪndɪˈpendənt/",pos:"形容詞",ja:"独立した・自立した",ex:"She became independent after college.",exJa:"彼女は大学卒業後に自立した。"},
+  {g:"3",word:"significant",ph:"/sɪɡˈnɪfɪkənt/",pos:"形容詞",ja:"重要な・大きな",ex:"This is a significant discovery.",exJa:"これは重要な発見だ。"},
+  {g:"3",word:"reasonable",ph:"/ˈriːzənəbəl/",pos:"形容詞",ja:"合理的な・道理にかなった",ex:"That is a reasonable price.",exJa:"それは妥当な価格だ。"},
+  {g:"3",word:"universal",ph:"/ˌjuːnɪˈvɜːrsəl/",pos:"形容詞",ja:"普遍的な・全体に共通の",ex:"Music is a universal language.",exJa:"音楽は普遍的な言語だ。"},
+  {g:"3",word:"responsible",ph:"/rɪˈspɒnsɪbəl/",pos:"形容詞",ja:"責任のある",ex:"Be responsible for your actions.",exJa:"自分の行動に責任を持って。"},
+  {g:"3",word:"innovative",ph:"/ˈɪnəveɪtɪv/",pos:"形容詞",ja:"革新的な・独創的な",ex:"This is an innovative approach.",exJa:"これは革新的なアプローチだ。"},
+  {g:"3",word:"ethical",ph:"/ˈeθɪkəl/",pos:"形容詞",ja:"倫理的な・道徳的な",ex:"We must make ethical choices.",exJa:"倫理的な選択をしなければならない。"},
+  {g:"3",word:"critical",ph:"/ˈkrɪtɪkəl/",pos:"形容詞",ja:"批判的な・重要な",ex:"Critical thinking is very important.",exJa:"批判的思考はとても重要だ。"},
+
+  // ── 中1 追加語 (86語) ────────────────────
+  // 基本動詞
+  {g:"1",word:"go",ph:"/ɡoʊ/",pos:"動詞",ja:"行く",ex:"I go to school every day.",exJa:"私は毎日学校に行く。"},
+  {g:"1",word:"come",ph:"/kʌm/",pos:"動詞",ja:"来る",ex:"Please come here.",exJa:"こちらに来てください。"},
+  {g:"1",word:"make",ph:"/meɪk/",pos:"動詞",ja:"作る・〜にする",ex:"I made a cake for her.",exJa:"彼女のためにケーキを作った。"},
+  {g:"1",word:"take",ph:"/teɪk/",pos:"動詞",ja:"取る・持っていく",ex:"Take your umbrella.",exJa:"傘を持っていきなさい。"},
+  {g:"1",word:"give",ph:"/ɡɪv/",pos:"動詞",ja:"与える・あげる",ex:"She gave me a present.",exJa:"彼女はプレゼントをくれた。"},
+  {g:"1",word:"get",ph:"/ɡet/",pos:"動詞",ja:"得る・もらう・〜になる",ex:"I got a good score.",exJa:"いい点数が取れた。"},
+  {g:"1",word:"put",ph:"/pʊt/",pos:"動詞",ja:"置く",ex:"Put the book on the desk.",exJa:"本を机の上に置いて。"},
+  {g:"1",word:"see",ph:"/siː/",pos:"動詞",ja:"見える・会う・わかる",ex:"I see a bird in the tree.",exJa:"木に鳥が見える。"},
+  {g:"1",word:"hear",ph:"/hɪər/",pos:"動詞",ja:"聞こえる",ex:"Can you hear that sound?",exJa:"あの音が聞こえる？"},
+  {g:"1",word:"find",ph:"/faɪnd/",pos:"動詞",ja:"見つける・気づく",ex:"I found my keys.",exJa:"鍵を見つけた。"},
+  {g:"1",word:"feel",ph:"/fiːl/",pos:"動詞",ja:"感じる",ex:"I feel happy today.",exJa:"今日は幸せな気分だ。"},
+  {g:"1",word:"buy",ph:"/baɪ/",pos:"動詞",ja:"買う",ex:"I want to buy a new book.",exJa:"新しい本を買いたい。"},
+  {g:"1",word:"eat",ph:"/iːt/",pos:"動詞",ja:"食べる",ex:"I eat breakfast every morning.",exJa:"毎朝朝食を食べる。"},
+  {g:"1",word:"drink",ph:"/drɪŋk/",pos:"動詞",ja:"飲む",ex:"Drink water every day.",exJa:"毎日水を飲みなさい。"},
+  {g:"1",word:"sleep",ph:"/sliːp/",pos:"動詞",ja:"眠る・寝る",ex:"I sleep eight hours a night.",exJa:"私は一晩に8時間眠る。"},
+  {g:"1",word:"wake",ph:"/weɪk/",pos:"動詞",ja:"目覚める・起こす",ex:"I wake up at seven.",exJa:"私は7時に起きる。"},
+  {g:"1",word:"walk",ph:"/wɔːk/",pos:"動詞",ja:"歩く",ex:"I walk to school.",exJa:"私は学校まで歩く。"},
+  {g:"1",word:"run",ph:"/rʌn/",pos:"動詞",ja:"走る",ex:"She runs every morning.",exJa:"彼女は毎朝走る。"},
+  {g:"1",word:"swim",ph:"/swɪm/",pos:"動詞",ja:"泳ぐ",ex:"I can swim very fast.",exJa:"私はとても速く泳げる。"},
+  {g:"1",word:"watch",ph:"/wɒtʃ/",pos:"動詞",ja:"見る・観察する",ex:"I watch TV after dinner.",exJa:"夕食後テレビを見る。"},
+  {g:"1",word:"send",ph:"/send/",pos:"動詞",ja:"送る",ex:"Send me an email.",exJa:"メールを送って。"},
+  {g:"1",word:"start",ph:"/stɑːrt/",pos:"動詞",ja:"始める・出発する",ex:"The class starts at nine.",exJa:"授業は9時に始まる。"},
+  {g:"1",word:"stop",ph:"/stɒp/",pos:"動詞",ja:"止まる・やめる",ex:"Please stop talking.",exJa:"話すのをやめてください。"},
+  {g:"1",word:"wait",ph:"/weɪt/",pos:"動詞",ja:"待つ",ex:"Wait for me here.",exJa:"ここで待っていて。"},
+  {g:"1",word:"turn",ph:"/tɜːrn/",pos:"動詞",ja:"曲がる・回る・向く",ex:"Turn left at the corner.",exJa:"角を左に曲がって。"},
+  {g:"1",word:"carry",ph:"/ˈkæri/",pos:"動詞",ja:"運ぶ・持ち運ぶ",ex:"Can you carry this bag?",exJa:"このカバンを運んでもらえる？"},
+  {g:"1",word:"stand",ph:"/stænd/",pos:"動詞",ja:"立つ",ex:"Please stand up.",exJa:"立ってください。"},
+  {g:"1",word:"sit",ph:"/sɪt/",pos:"動詞",ja:"座る",ex:"Sit down, please.",exJa:"座ってください。"},
+  {g:"1",word:"open",ph:"/ˈoʊpən/",pos:"動詞",ja:"開ける・開く",ex:"Open the window, please.",exJa:"窓を開けてください。"},
+  {g:"1",word:"close",ph:"/kloʊz/",pos:"動詞",ja:"閉める・閉じる",ex:"Please close the door.",exJa:"ドアを閉めてください。"},
+  {g:"1",word:"lose",ph:"/luːz/",pos:"動詞",ja:"失う・なくす・負ける",ex:"Don't lose your ticket.",exJa:"チケットをなくさないで。"},
+  {g:"1",word:"win",ph:"/wɪn/",pos:"動詞",ja:"勝つ",ex:"Our team won the game.",exJa:"私たちのチームは試合に勝った。"},
+  {g:"1",word:"build",ph:"/bɪld/",pos:"動詞",ja:"建てる・作る",ex:"They built a new school.",exJa:"彼らは新しい学校を建てた。"},
+  {g:"1",word:"break",ph:"/breɪk/",pos:"動詞",ja:"壊す・割る",ex:"Don't break the glass.",exJa:"グラスを割らないで。"},
+  {g:"1",word:"choose",ph:"/tʃuːz/",pos:"動詞",ja:"選ぶ・選択する",ex:"Choose the answer carefully.",exJa:"答えを慎重に選んで。"},
+  {g:"1",word:"move",ph:"/muːv/",pos:"動詞",ja:"動く・引っ越す",ex:"She moved to Tokyo last year.",exJa:"彼女は去年東京に引っ越した。"},
+  {g:"1",word:"say",ph:"/seɪ/",pos:"動詞",ja:"言う",ex:"What did you say?",exJa:"何と言いましたか？"},
+  {g:"1",word:"need",ph:"/niːd/",pos:"動詞",ja:"必要とする",ex:"I need your help.",exJa:"あなたの助けが必要だ。"},
+  {g:"1",word:"hope",ph:"/hoʊp/",pos:"動詞/名詞",ja:"望む・希望",ex:"I hope you feel better.",exJa:"良くなるといいですね。"},
+  {g:"1",word:"believe",ph:"/bɪˈliːv/",pos:"動詞",ja:"信じる",ex:"I believe in you.",exJa:"あなたを信じている。"},
+  // 名詞
+  {g:"1",word:"home",ph:"/hoʊm/",pos:"名詞",ja:"家・故郷",ex:"There is no place like home.",exJa:"家に勝る場所はない。"},
+  {g:"1",word:"house",ph:"/haʊs/",pos:"名詞",ja:"家・住宅",ex:"We live in a small house.",exJa:"私たちは小さな家に住んでいる。"},
+  {g:"1",word:"room",ph:"/ruːm/",pos:"名詞",ja:"部屋",ex:"My room is clean.",exJa:"私の部屋はきれいだ。"},
+  {g:"1",word:"table",ph:"/ˈteɪbəl/",pos:"名詞",ja:"テーブル・机",ex:"Put it on the table.",exJa:"テーブルの上に置いて。"},
+  {g:"1",word:"door",ph:"/dɔːr/",pos:"名詞",ja:"ドア",ex:"Please open the door.",exJa:"ドアを開けてください。"},
+  {g:"1",word:"window",ph:"/ˈwɪndoʊ/",pos:"名詞",ja:"窓",ex:"Open the window for fresh air.",exJa:"新鮮な空気のために窓を開けて。"},
+  {g:"1",word:"garden",ph:"/ˈɡɑːrdn/",pos:"名詞",ja:"庭・庭園",ex:"My mother grows flowers in the garden.",exJa:"母は庭で花を育てている。"},
+  {g:"1",word:"park",ph:"/pɑːrk/",pos:"名詞",ja:"公園",ex:"Let's play in the park.",exJa:"公園で遊ぼう。"},
+  {g:"1",word:"library",ph:"/ˈlaɪbrəri/",pos:"名詞",ja:"図書館",ex:"I study at the library.",exJa:"私は図書館で勉強する。"},
+  {g:"1",word:"hospital",ph:"/ˈhɒspɪtl/",pos:"名詞",ja:"病院",ex:"My father works at a hospital.",exJa:"父は病院で働いている。"},
+  {g:"1",word:"station",ph:"/ˈsteɪʃən/",pos:"名詞",ja:"駅",ex:"Meet me at the station.",exJa:"駅で会いましょう。"},
+  {g:"1",word:"shop",ph:"/ʃɒp/",pos:"名詞",ja:"店・お店",ex:"There is a flower shop near here.",exJa:"この近くに花屋がある。"},
+  {g:"1",word:"street",ph:"/striːt/",pos:"名詞",ja:"通り・道路",ex:"Walk along this street.",exJa:"この通りを歩いてください。"},
+  {g:"1",word:"town",ph:"/taʊn/",pos:"名詞",ja:"町",ex:"I grew up in a small town.",exJa:"私は小さな町で育った。"},
+  {g:"1",word:"map",ph:"/mæp/",pos:"名詞",ja:"地図",ex:"Do you have a map?",exJa:"地図を持っていますか？"},
+  {g:"1",word:"picture",ph:"/ˈpɪktʃər/",pos:"名詞",ja:"絵・写真",ex:"Look at this picture.",exJa:"この写真を見て。"},
+  {g:"1",word:"letter",ph:"/ˈletər/",pos:"名詞",ja:"手紙・文字",ex:"I got a letter from my friend.",exJa:"友達から手紙が届いた。"},
+  {g:"1",word:"message",ph:"/ˈmesɪdʒ/",pos:"名詞",ja:"メッセージ・伝言",ex:"Please leave a message.",exJa:"伝言を残してください。"},
+  {g:"1",word:"phone",ph:"/foʊn/",pos:"名詞",ja:"電話",ex:"My phone is out of battery.",exJa:"スマホのバッテリーが切れた。"},
+  {g:"1",word:"money",ph:"/ˈmʌni/",pos:"名詞",ja:"お金",ex:"I saved money to buy a book.",exJa:"本を買うためにお金を貯めた。"},
+  {g:"1",word:"time",ph:"/taɪm/",pos:"名詞",ja:"時間・時刻",ex:"What time is it now?",exJa:"今何時ですか？"},
+  {g:"1",word:"day",ph:"/deɪ/",pos:"名詞",ja:"日・一日",ex:"Have a nice day!",exJa:"良い一日を！"},
+  {g:"1",word:"week",ph:"/wiːk/",pos:"名詞",ja:"週",ex:"I exercise three times a week.",exJa:"私は週に3回運動する。"},
+  {g:"1",word:"month",ph:"/mʌnθ/",pos:"名詞",ja:"月",ex:"I read one book a month.",exJa:"私は月に一冊本を読む。"},
+  {g:"1",word:"year",ph:"/jɪər/",pos:"名詞",ja:"年",ex:"This year was very exciting.",exJa:"今年はとてもわくわくした一年だった。"},
+  {g:"1",word:"morning",ph:"/ˈmɔːrnɪŋ/",pos:"名詞",ja:"朝・午前",ex:"I jog every morning.",exJa:"私は毎朝ジョギングする。"},
+  {g:"1",word:"evening",ph:"/ˈiːvnɪŋ/",pos:"名詞",ja:"夕方・夜",ex:"Good evening everyone.",exJa:"皆さん、こんばんは。"},
+  {g:"1",word:"weather",ph:"/ˈweðər/",pos:"名詞",ja:"天気・天候",ex:"The weather is nice today.",exJa:"今日は天気が良い。"},
+  // 形容詞
+  {g:"1",word:"excited",ph:"/ɪkˈsaɪtɪd/",pos:"形容詞",ja:"興奮した・わくわくした",ex:"I am excited about the trip.",exJa:"旅行がわくわくだ。"},
+  {g:"1",word:"tired",ph:"/ˈtaɪərd/",pos:"形容詞",ja:"疲れた",ex:"I am very tired today.",exJa:"今日はとても疲れた。"},
+  {g:"1",word:"hungry",ph:"/ˈhʌŋɡri/",pos:"形容詞",ja:"空腹な・お腹が空いた",ex:"I am so hungry.",exJa:"とてもお腹が空いた。"},
+  {g:"1",word:"glad",ph:"/ɡlæd/",pos:"形容詞",ja:"嬉しい・喜んで",ex:"I am glad to meet you.",exJa:"お会いできて嬉しいです。"},
+  {g:"1",word:"sure",ph:"/ʃʊər/",pos:"形容詞",ja:"確信している・確かな",ex:"Are you sure about that?",exJa:"それは確かですか？"},
+  {g:"1",word:"ready",ph:"/ˈredi/",pos:"形容詞",ja:"準備ができた",ex:"Are you ready to go?",exJa:"出かける準備はできた？"},
+  {g:"1",word:"safe",ph:"/seɪf/",pos:"形容詞",ja:"安全な",ex:"This neighborhood is very safe.",exJa:"この地域はとても安全だ。"},
+  {g:"1",word:"special",ph:"/ˈspeʃəl/",pos:"形容詞",ja:"特別な",ex:"Today is a special day for me.",exJa:"今日は私にとって特別な日だ。"},
+  {g:"1",word:"clean",ph:"/kliːn/",pos:"形容詞",ja:"きれいな・清潔な",ex:"Keep your room clean.",exJa:"部屋をきれいにしておきなさい。"},
+  {g:"1",word:"healthy",ph:"/ˈhelθi/",pos:"形容詞",ja:"健康な",ex:"Eat vegetables to stay healthy.",exJa:"健康を保つために野菜を食べて。"},
+  {g:"1",word:"brave",ph:"/breɪv/",pos:"形容詞",ja:"勇敢な",ex:"She was brave enough to try.",exJa:"彼女は挑戦するほど勇敢だった。"},
+  {g:"1",word:"strong",ph:"/strɒŋ/",pos:"形容詞",ja:"強い",ex:"He is physically strong.",exJa:"彼は体力的に強い。"},
+  {g:"1",word:"weak",ph:"/wiːk/",pos:"形容詞",ja:"弱い",ex:"I feel weak when I am sick.",exJa:"体調が悪いと弱く感じる。"},
+  {g:"1",word:"fast",ph:"/fæst/",pos:"形容詞/副詞",ja:"速い・速く",ex:"He runs very fast.",exJa:"彼はとても速く走る。"},
+  {g:"1",word:"slow",ph:"/sloʊ/",pos:"形容詞",ja:"遅い",ex:"The bus is slow today.",exJa:"今日はバスが遅い。"},
+  {g:"1",word:"easy",ph:"/ˈiːzi/",pos:"形容詞",ja:"簡単な・容易な",ex:"This question is easy.",exJa:"この問題は簡単だ。"},
+  {g:"1",word:"quiet",ph:"/ˈkwaɪɪt/",pos:"形容詞",ja:"静かな",ex:"Please be quiet in the library.",exJa:"図書館では静かにしてください。"},
+  {g:"1",word:"noisy",ph:"/ˈnɔɪzi/",pos:"形容詞",ja:"うるさい・騒がしい",ex:"The street is noisy at night.",exJa:"夜は通りがうるさい。"},
+
+  // ── 中2 追加語 (102語) ───────────────────
+  // 動詞
+  {g:"2",word:"accomplish",ph:"/əˈkɒmplɪʃ/",pos:"動詞",ja:"成し遂げる・達成する",ex:"She accomplished her goal.",exJa:"彼女は目標を成し遂げた。"},
+  {g:"2",word:"adapt",ph:"/əˈdæpt/",pos:"動詞",ja:"適応する・順応する",ex:"We must adapt to changes.",exJa:"変化に適応しなければならない。"},
+  {g:"2",word:"advertise",ph:"/ˈædvətaɪz/",pos:"動詞",ja:"宣伝する・広告する",ex:"The company advertises on TV.",exJa:"その会社はテレビで宣伝している。"},
+  {g:"2",word:"afford",ph:"/əˈfɔːrd/",pos:"動詞",ja:"〜する余裕がある",ex:"I can't afford a new computer.",exJa:"新しいパソコンを買う余裕がない。"},
+  {g:"2",word:"announce",ph:"/əˈnaʊns/",pos:"動詞",ja:"発表する・告知する",ex:"The teacher announced the test results.",exJa:"先生がテスト結果を発表した。"},
+  {g:"2",word:"appreciate",ph:"/əˈpriːʃieɪt/",pos:"動詞",ja:"感謝する・鑑賞する",ex:"I appreciate your help.",exJa:"あなたの助けに感謝します。"},
+  {g:"2",word:"argue",ph:"/ˈɑːrɡjuː/",pos:"動詞",ja:"議論する・主張する",ex:"They argued about the plan.",exJa:"彼らはその計画について議論した。"},
+  {g:"2",word:"celebrate",ph:"/ˈselɪbreɪt/",pos:"動詞",ja:"祝う・祝賀する",ex:"Let's celebrate your birthday.",exJa:"誕生日を祝おう。"},
+  {g:"2",word:"complain",ph:"/kəmˈpleɪn/",pos:"動詞",ja:"不平を言う・苦情を言う",ex:"Don't complain about small things.",exJa:"小さなことで不平を言わないで。"},
+  {g:"2",word:"concentrate",ph:"/ˈkɒnsəntreɪt/",pos:"動詞",ja:"集中する",ex:"Concentrate on your studies.",exJa:"勉強に集中しなさい。"},
+  {g:"2",word:"confirm",ph:"/kənˈfɜːrm/",pos:"動詞",ja:"確認する",ex:"Please confirm the meeting time.",exJa:"会議の時間を確認してください。"},
+  {g:"2",word:"damage",ph:"/ˈdæmɪdʒ/",pos:"動詞/名詞",ja:"損傷を与える・損害",ex:"The storm damaged many buildings.",exJa:"嵐が多くの建物に損害を与えた。"},
+  {g:"2",word:"disappear",ph:"/ˌdɪsəˈpɪər/",pos:"動詞",ja:"消える・姿を消す",ex:"The clouds disappeared.",exJa:"雲が消えた。"},
+  {g:"2",word:"discuss",ph:"/dɪˈskʌs/",pos:"動詞",ja:"話し合う・議論する",ex:"Let's discuss this problem.",exJa:"この問題を話し合おう。"},
+  {g:"2",word:"donate",ph:"/doʊˈneɪt/",pos:"動詞",ja:"寄付する・献金する",ex:"She donated books to the school.",exJa:"彼女は学校に本を寄付した。"},
+  {g:"2",word:"earn",ph:"/ɜːrn/",pos:"動詞",ja:"稼ぐ・得る",ex:"I earn money by working part-time.",exJa:"アルバイトでお金を稼いでいる。"},
+  {g:"2",word:"fail",ph:"/feɪl/",pos:"動詞",ja:"失敗する・不合格になる",ex:"Don't be afraid to fail.",exJa:"失敗を恐れないで。"},
+  {g:"2",word:"follow",ph:"/ˈfɒloʊ/",pos:"動詞",ja:"従う・ついていく",ex:"Follow the school rules.",exJa:"学校のルールに従いなさい。"},
+  {g:"2",word:"gather",ph:"/ˈɡæðər/",pos:"動詞",ja:"集まる・集める",ex:"Everyone gathered in the gym.",exJa:"全員が体育館に集まった。"},
+  {g:"2",word:"handle",ph:"/ˈhændəl/",pos:"動詞",ja:"扱う・処理する",ex:"Handle this carefully.",exJa:"これを慎重に扱って。"},
+  {g:"2",word:"include",ph:"/ɪnˈkluːd/",pos:"動詞",ja:"含む・含める",ex:"The price includes tax.",exJa:"その価格には税金が含まれている。"},
+  {g:"2",word:"inspire",ph:"/ɪnˈspaɪər/",pos:"動詞",ja:"刺激を与える・鼓舞する",ex:"Her story inspired many people.",exJa:"彼女の話は多くの人を鼓舞した。"},
+  {g:"2",word:"interview",ph:"/ˈɪntəvjuː/",pos:"動詞/名詞",ja:"インタビューする・面接",ex:"I had a job interview today.",exJa:"今日仕事の面接があった。"},
+  {g:"2",word:"invite",ph:"/ɪnˈvaɪt/",pos:"動詞",ja:"招待する",ex:"She invited me to her party.",exJa:"彼女がパーティーに招待してくれた。"},
+  {g:"2",word:"join",ph:"/dʒɔɪn/",pos:"動詞",ja:"参加する・加入する",ex:"I joined the tennis club.",exJa:"テニス部に入った。"},
+  {g:"2",word:"miss",ph:"/mɪs/",pos:"動詞",ja:"恋しく思う・乗り遅れる",ex:"I miss my family.",exJa:"家族が恋しい。"},
+  {g:"2",word:"notice",ph:"/ˈnoʊtɪs/",pos:"動詞",ja:"気づく・気がつく",ex:"Did you notice anything strange?",exJa:"何か変なことに気づきましたか？"},
+  {g:"2",word:"observe",ph:"/əbˈzɜːrv/",pos:"動詞",ja:"観察する・守る",ex:"We observed the stars at night.",exJa:"夜に星を観察した。"},
+  {g:"2",word:"order",ph:"/ˈɔːrdər/",pos:"動詞/名詞",ja:"注文する・命令する",ex:"I ordered a pizza.",exJa:"ピザを注文した。"},
+  {g:"2",word:"own",ph:"/oʊn/",pos:"動詞/形容詞",ja:"所有する・自分自身の",ex:"She owns a small shop.",exJa:"彼女は小さな店を持っている。"},
+  {g:"2",word:"pay",ph:"/peɪ/",pos:"動詞",ja:"支払う",ex:"Please pay at the counter.",exJa:"カウンターでお支払いください。"},
+  {g:"2",word:"plant",ph:"/plænt/",pos:"動詞/名詞",ja:"植える・植物",ex:"We planted trees in the park.",exJa:"公園に木を植えた。"},
+  {g:"2",word:"prevent",ph:"/prɪˈvent/",pos:"動詞",ja:"防ぐ・阻止する",ex:"Wash hands to prevent illness.",exJa:"病気を防ぐために手を洗って。"},
+  {g:"2",word:"reach",ph:"/riːtʃ/",pos:"動詞",ja:"到達する・届く",ex:"I reached the top of the mountain.",exJa:"山の頂上に到達した。"},
+  {g:"2",word:"recommend",ph:"/ˌrekəˈmend/",pos:"動詞",ja:"勧める・推薦する",ex:"I recommend this restaurant.",exJa:"このレストランをお勧めします。"},
+  {g:"2",word:"recycle",ph:"/ˌriːˈsaɪkəl/",pos:"動詞",ja:"リサイクルする",ex:"Please recycle your bottles.",exJa:"ボトルをリサイクルしてください。"},
+  {g:"2",word:"repair",ph:"/rɪˈpeər/",pos:"動詞",ja:"修理する",ex:"He repaired my bike.",exJa:"彼が自転車を修理してくれた。"},
+  {g:"2",word:"replace",ph:"/rɪˈpleɪs/",pos:"動詞",ja:"取り替える・置き換える",ex:"Replace the old battery.",exJa:"古い電池を取り替えて。"},
+  {g:"2",word:"return",ph:"/rɪˈtɜːrn/",pos:"動詞",ja:"戻る・返す",ex:"Return the book to the library.",exJa:"本を図書館に返して。"},
+  {g:"2",word:"save",ph:"/seɪv/",pos:"動詞",ja:"救う・節約する・保存する",ex:"Save the file before closing.",exJa:"閉じる前にファイルを保存して。"},
+  {g:"2",word:"search",ph:"/sɜːrtʃ/",pos:"動詞",ja:"探す・検索する",ex:"Search for information online.",exJa:"ネットで情報を検索して。"},
+  {g:"2",word:"select",ph:"/sɪˈlekt/",pos:"動詞",ja:"選ぶ・選択する",ex:"Select the best answer.",exJa:"最も良い答えを選んで。"},
+  {g:"2",word:"spend",ph:"/spend/",pos:"動詞",ja:"(時間・お金を)使う・過ごす",ex:"I spend two hours on homework.",exJa:"宿題に2時間かける。"},
+  {g:"2",word:"travel",ph:"/ˈtrævəl/",pos:"動詞/名詞",ja:"旅行する・旅行",ex:"I want to travel the world.",exJa:"世界を旅行したい。"},
+  {g:"2",word:"treat",ph:"/triːt/",pos:"動詞",ja:"扱う・もてなす",ex:"Treat everyone with kindness.",exJa:"全員を親切に扱いなさい。"},
+  {g:"2",word:"waste",ph:"/weɪst/",pos:"動詞/名詞",ja:"無駄にする・廃棄物",ex:"Don't waste food.",exJa:"食べ物を無駄にしないで。"},
+  {g:"2",word:"wonder",ph:"/ˈwʌndər/",pos:"動詞",ja:"〜かと思う・不思議に思う",ex:"I wonder what she thinks.",exJa:"彼女が何を考えているか気になる。"},
+  {g:"2",word:"inform",ph:"/ɪnˈfɔːrm/",pos:"動詞",ja:"知らせる・通知する",ex:"Please inform me of any changes.",exJa:"変更があれば知らせてください。"},
+  {g:"2",word:"create",ph:"/kriˈeɪt/",pos:"動詞",ja:"作る・生み出す・創造する",ex:"She created a beautiful painting.",exJa:"彼女は美しい絵を作った。"},
+  {g:"2",word:"supply",ph:"/səˈplaɪ/",pos:"動詞/名詞",ja:"供給する・供給",ex:"Supply food to those in need.",exJa:"必要な人々に食料を供給する。"},
+  // 名詞
+  {g:"2",word:"activity",ph:"/ækˈtɪvɪti/",pos:"名詞",ja:"活動・行事",ex:"We have many club activities.",exJa:"私たちは多くの部活動がある。"},
+  {g:"2",word:"advertisement",ph:"/ˌædvəˈtaɪzmənt/",pos:"名詞",ja:"広告・宣伝",ex:"The advertisement was very creative.",exJa:"その広告はとても独創的だった。"},
+  {g:"2",word:"amount",ph:"/əˈmaʊnt/",pos:"名詞",ja:"量・金額",ex:"A large amount of rain fell.",exJa:"大量の雨が降った。"},
+  {g:"2",word:"benefit",ph:"/ˈbenɪfɪt/",pos:"名詞/動詞",ja:"利益・恩恵・利益をもたらす",ex:"Exercise has many health benefits.",exJa:"運動には多くの健康上の利点がある。"},
+  {g:"2",word:"campaign",ph:"/kæmˈpeɪn/",pos:"名詞",ja:"キャンペーン・運動",ex:"The recycling campaign was a success.",exJa:"リサイクルキャンペーンは成功した。"},
+  {g:"2",word:"choice",ph:"/tʃɔɪs/",pos:"名詞",ja:"選択・選択肢",ex:"You have the choice.",exJa:"あなたには選択肢がある。"},
+  {g:"2",word:"competition",ph:"/ˌkɒmpɪˈtɪʃən/",pos:"名詞",ja:"競争・コンテスト",ex:"She won the speech competition.",exJa:"彼女はスピーチコンテストで優勝した。"},
+  {g:"2",word:"connection",ph:"/kəˈnekʃən/",pos:"名詞",ja:"つながり・関係・接続",ex:"There is a strong connection between them.",exJa:"彼らの間には強いつながりがある。"},
+  {g:"2",word:"education",ph:"/ˌedʒuˈkeɪʃən/",pos:"名詞",ja:"教育",ex:"Education is very important.",exJa:"教育はとても大切だ。"},
+  {g:"2",word:"freedom",ph:"/ˈfriːdəm/",pos:"名詞",ja:"自由",ex:"Everyone has the right to freedom.",exJa:"誰もが自由への権利を持っている。"},
+  {g:"2",word:"health",ph:"/helθ/",pos:"名詞",ja:"健康",ex:"Good health is a great gift.",exJa:"良い健康は素晴らしい贈り物だ。"},
+  {g:"2",word:"issue",ph:"/ˈɪʃuː/",pos:"名詞",ja:"問題・課題・号",ex:"Climate change is a global issue.",exJa:"気候変動は世界的な問題だ。"},
+  {g:"2",word:"leader",ph:"/ˈliːdər/",pos:"名詞",ja:"リーダー・指導者",ex:"She is a great leader.",exJa:"彼女は素晴らしいリーダーだ。"},
+  {g:"2",word:"meal",ph:"/miːl/",pos:"名詞",ja:"食事",ex:"Breakfast is the most important meal.",exJa:"朝食は最も大切な食事だ。"},
+  {g:"2",word:"member",ph:"/ˈmembər/",pos:"名詞",ja:"メンバー・会員",ex:"He is a member of our team.",exJa:"彼は私たちのチームのメンバーだ。"},
+  {g:"2",word:"news",ph:"/njuːz/",pos:"名詞",ja:"ニュース・知らせ",ex:"I read the news every morning.",exJa:"私は毎朝ニュースを読む。"},
+  {g:"2",word:"neighbor",ph:"/ˈneɪbər/",pos:"名詞",ja:"近所の人・隣人",ex:"My neighbor is very kind.",exJa:"私の隣人はとても親切だ。"},
+  {g:"2",word:"product",ph:"/ˈprɒdʌkt/",pos:"名詞",ja:"製品・産物",ex:"This is a high-quality product.",exJa:"これは高品質の製品だ。"},
+  {g:"2",word:"project",ph:"/ˈprɒdʒekt/",pos:"名詞",ja:"プロジェクト・課題",ex:"Our class is working on a project.",exJa:"クラスでプロジェクトに取り組んでいる。"},
+  {g:"2",word:"role",ph:"/roʊl/",pos:"名詞",ja:"役割",ex:"Everyone has a role to play.",exJa:"誰もが果たすべき役割がある。"},
+  {g:"2",word:"situation",ph:"/ˌsɪtʃuˈeɪʃən/",pos:"名詞",ja:"状況・立場",ex:"We are in a difficult situation.",exJa:"私たちは難しい状況にある。"},
+  {g:"2",word:"skill",ph:"/skɪl/",pos:"名詞",ja:"スキル・技術",ex:"Communication is an important skill.",exJa:"コミュニケーションは重要なスキルだ。"},
+  {g:"2",word:"subject",ph:"/ˈsʌbdʒɪkt/",pos:"名詞",ja:"科目・主題",ex:"What is your favorite subject?",exJa:"好きな科目は何ですか？"},
+  {g:"2",word:"success",ph:"/səkˈses/",pos:"名詞",ja:"成功",ex:"Success comes with hard work.",exJa:"成功は努力と共にやってくる。"},
+  {g:"2",word:"symbol",ph:"/ˈsɪmbəl/",pos:"名詞",ja:"象徴・シンボル",ex:"The dove is a symbol of peace.",exJa:"ハトは平和の象徴だ。"},
+  {g:"2",word:"system",ph:"/ˈsɪstəm/",pos:"名詞",ja:"システム・制度",ex:"Japan has a great education system.",exJa:"日本は優れた教育制度がある。"},
+  {g:"2",word:"topic",ph:"/ˈtɒpɪk/",pos:"名詞",ja:"トピック・話題",ex:"What is today's topic?",exJa:"今日の話題は何ですか？"},
+  {g:"2",word:"value",ph:"/ˈvæljuː/",pos:"名詞",ja:"価値・大切にする",ex:"Education has great value.",exJa:"教育は大きな価値がある。"},
+  {g:"2",word:"resource",ph:"/ˈriːsɔːrs/",pos:"名詞",ja:"資源・リソース",ex:"Water is a precious resource.",exJa:"水は貴重な資源だ。"},
+  {g:"2",word:"event",ph:"/ɪˈvent/",pos:"名詞",ja:"出来事・イベント",ex:"The school event was fun.",exJa:"学校のイベントは楽しかった。"},
+  {g:"2",word:"progress",ph:"/ˈproʊɡres/",pos:"名詞/動詞",ja:"進歩・前進する",ex:"We made great progress this month.",exJa:"今月は大きな進歩を遂げた。"},
+  // 形容詞
+  {g:"2",word:"average",ph:"/ˈævərɪdʒ/",pos:"形容詞/名詞",ja:"平均的な・普通の・平均",ex:"The average score was 70.",exJa:"平均点は70点だった。"},
+  {g:"2",word:"comfortable",ph:"/ˈkʌmftəbəl/",pos:"形容詞",ja:"快適な・気楽な",ex:"This sofa is very comfortable.",exJa:"このソファはとても快適だ。"},
+  {g:"2",word:"common",ph:"/ˈkɒmən/",pos:"形容詞",ja:"一般的な・よくある",ex:"Colds are common in winter.",exJa:"風邪は冬によくある。"},
+  {g:"2",word:"equal",ph:"/ˈiːkwəl/",pos:"形容詞",ja:"等しい・平等な",ex:"Everyone should have equal rights.",exJa:"全員が平等な権利を持つべきだ。"},
+  {g:"2",word:"helpful",ph:"/ˈhelpfəl/",pos:"形容詞",ja:"助けになる・役立つ",ex:"She was very helpful.",exJa:"彼女はとても助かった。"},
+  {g:"2",word:"local",ph:"/ˈloʊkəl/",pos:"形容詞",ja:"地元の・地域の",ex:"Support your local businesses.",exJa:"地元のビジネスを応援しよう。"},
+  {g:"2",word:"modern",ph:"/ˈmɒdərn/",pos:"形容詞",ja:"現代の・近代的な",ex:"This is a modern city.",exJa:"これは近代的な都市だ。"},
+  {g:"2",word:"natural",ph:"/ˈnætʃərəl/",pos:"形容詞",ja:"自然な・天然の",ex:"This juice is made from natural ingredients.",exJa:"このジュースは天然素材で作られている。"},
+  {g:"2",word:"original",ph:"/əˈrɪdʒɪnəl/",pos:"形容詞",ja:"独自の・元の・オリジナルの",ex:"She has an original style.",exJa:"彼女は独自のスタイルを持っている。"},
+  {g:"2",word:"peaceful",ph:"/ˈpiːsfəl/",pos:"形容詞",ja:"平和な・穏やかな",ex:"This is a peaceful place.",exJa:"ここは穏やかな場所だ。"},
+  {g:"2",word:"physical",ph:"/ˈfɪzɪkəl/",pos:"形容詞",ja:"身体的な・物理的な",ex:"Regular physical exercise is important.",exJa:"定期的な身体運動は大切だ。"},
+  {g:"2",word:"possible",ph:"/ˈpɒsɪbəl/",pos:"形容詞",ja:"可能な",ex:"Anything is possible if you try.",exJa:"努力すれば何でも可能だ。"},
+  {g:"2",word:"powerful",ph:"/ˈpaʊərfəl/",pos:"形容詞",ja:"力強い・有力な",ex:"Music is a powerful tool.",exJa:"音楽は強力なツールだ。"},
+  {g:"2",word:"practical",ph:"/ˈpræktɪkəl/",pos:"形容詞",ja:"実用的な・現実的な",ex:"This is practical advice.",exJa:"これは実用的なアドバイスだ。"},
+  {g:"2",word:"precious",ph:"/ˈpreʃəs/",pos:"形容詞",ja:"貴重な・大切な",ex:"Time is precious.",exJa:"時間は貴重だ。"},
+  {g:"2",word:"professional",ph:"/prəˈfeʃənəl/",pos:"形容詞",ja:"専門的な・プロの",ex:"She is a professional athlete.",exJa:"彼女はプロのアスリートだ。"},
+  {g:"2",word:"proud",ph:"/praʊd/",pos:"形容詞",ja:"誇りに思う",ex:"I am proud of my work.",exJa:"私は自分の仕事を誇りに思う。"},
+  {g:"2",word:"public",ph:"/ˈpʌblɪk/",pos:"形容詞",ja:"公の・一般の",ex:"This is a public library.",exJa:"ここは公立図書館だ。"},
+  {g:"2",word:"recent",ph:"/ˈriːsənt/",pos:"形容詞",ja:"最近の",ex:"Have you seen any recent movies?",exJa:"最近映画を見ましたか？"},
+  {g:"2",word:"smart",ph:"/smɑːrt/",pos:"形容詞",ja:"賢い・利口な",ex:"She is very smart.",exJa:"彼女はとても賢い。"},
+  {g:"2",word:"surprising",ph:"/səˈpraɪzɪŋ/",pos:"形容詞",ja:"驚くべき",ex:"The results were surprising.",exJa:"結果は驚くべきものだった。"},
+  {g:"2",word:"amazing",ph:"/əˈmeɪzɪŋ/",pos:"形容詞",ja:"驚くほど素晴らしい",ex:"The view from the top is amazing.",exJa:"頂上からの景色は素晴らしい。"},
+  {g:"2",word:"international",ph:"/ˌɪntəˈnæʃənəl/",pos:"形容詞",ja:"国際的な",ex:"English is an international language.",exJa:"英語は国際語だ。"},
+
+  // ── 中3 追加語 (100語) ───────────────────
+  // 動詞
+  {g:"3",word:"acknowledge",ph:"/əkˈnɒlɪdʒ/",pos:"動詞",ja:"認める・感謝する",ex:"She acknowledged her mistake.",exJa:"彼女は自分の間違いを認めた。"},
+  {g:"3",word:"advocate",ph:"/ˈædvəkeɪt/",pos:"動詞",ja:"擁護する・支持する",ex:"He advocates for equal rights.",exJa:"彼は平等な権利を支持する。"},
+  {g:"3",word:"assume",ph:"/əˈsjuːm/",pos:"動詞",ja:"仮定する・推測する",ex:"Don't assume things without facts.",exJa:"事実なしに物事を推測しないで。"},
+  {g:"3",word:"clarify",ph:"/ˈklærɪfaɪ/",pos:"動詞",ja:"明確にする・はっきりさせる",ex:"Please clarify your question.",exJa:"質問を明確にしてください。"},
+  {g:"3",word:"compensate",ph:"/ˈkɒmpənseɪt/",pos:"動詞",ja:"補償する・埋め合わせる",ex:"He compensated for the loss.",exJa:"彼は損失を補償した。"},
+  {g:"3",word:"convince",ph:"/kənˈvɪns/",pos:"動詞",ja:"納得させる・説得する",ex:"I convinced her to stay.",exJa:"彼女に留まるよう説得した。"},
+  {g:"3",word:"decline",ph:"/dɪˈklaɪn/",pos:"動詞",ja:"断る・衰退する",ex:"She declined the invitation.",exJa:"彼女は招待を断った。"},
+  {g:"3",word:"design",ph:"/dɪˈzaɪn/",pos:"動詞/名詞",ja:"設計する・デザイン",ex:"He designed a new bridge.",exJa:"彼は新しい橋を設計した。"},
+  {g:"3",word:"determine",ph:"/dɪˈtɜːrmɪn/",pos:"動詞",ja:"決定する・明らかにする",ex:"Determine your goals first.",exJa:"まず目標を決めなさい。"},
+  {g:"3",word:"distribute",ph:"/dɪˈstrɪbjuːt/",pos:"動詞",ja:"配布する・分配する",ex:"Distribute the handouts to everyone.",exJa:"全員にプリントを配ってください。"},
+  {g:"3",word:"enable",ph:"/ɪˈneɪbəl/",pos:"動詞",ja:"可能にする・できるようにする",ex:"Technology enables fast communication.",exJa:"テクノロジーは素早いコミュニケーションを可能にする。"},
+  {g:"3",word:"enforce",ph:"/ɪnˈfɔːrs/",pos:"動詞",ja:"施行する・実施する",ex:"The law must be enforced.",exJa:"法律は施行されなければならない。"},
+  {g:"3",word:"ensure",ph:"/ɪnˈʃʊər/",pos:"動詞",ja:"確かにする・確保する",ex:"Ensure everyone's safety.",exJa:"全員の安全を確保しなさい。"},
+  {g:"3",word:"expand",ph:"/ɪkˈspænd/",pos:"動詞",ja:"拡大する・広げる",ex:"The company expanded to Asia.",exJa:"その会社はアジアに拡大した。"},
+  {g:"3",word:"generate",ph:"/ˈdʒenəreɪt/",pos:"動詞",ja:"生み出す・発生させる",ex:"Solar panels generate electricity.",exJa:"太陽光パネルが電気を生み出す。"},
+  {g:"3",word:"guarantee",ph:"/ˌɡærənˈtiː/",pos:"動詞/名詞",ja:"保証する・保証",ex:"I guarantee this will work.",exJa:"これはうまくいくと保証する。"},
+  {g:"3",word:"highlight",ph:"/ˈhaɪlaɪt/",pos:"動詞",ja:"強調する・目立たせる",ex:"Please highlight the key points.",exJa:"重要な点を強調してください。"},
+  {g:"3",word:"implement",ph:"/ˈɪmplɪment/",pos:"動詞",ja:"実施する・実行する",ex:"We will implement the new plan.",exJa:"新しい計画を実施する。"},
+  {g:"3",word:"indicate",ph:"/ˈɪndɪkeɪt/",pos:"動詞",ja:"示す・指し示す",ex:"Research indicates this is true.",exJa:"研究はこれが事実だと示している。"},
+  {g:"3",word:"justify",ph:"/ˈdʒʌstɪfaɪ/",pos:"動詞",ja:"正当化する",ex:"You cannot justify lying.",exJa:"嘘をつくことを正当化できない。"},
+  {g:"3",word:"minimize",ph:"/ˈmɪnɪmaɪz/",pos:"動詞",ja:"最小限にする",ex:"We should minimize waste.",exJa:"廃棄物を最小限にすべきだ。"},
+  {g:"3",word:"monitor",ph:"/ˈmɒnɪtər/",pos:"動詞",ja:"監視する・観察する",ex:"Monitor your progress carefully.",exJa:"進捗を注意深く観察しなさい。"},
+  {g:"3",word:"negotiate",ph:"/nɪˈɡoʊʃieɪt/",pos:"動詞",ja:"交渉する",ex:"They negotiated a peace deal.",exJa:"彼らは平和協定を交渉した。"},
+  {g:"3",word:"obtain",ph:"/əbˈteɪn/",pos:"動詞",ja:"得る・取得する",ex:"I obtained a scholarship.",exJa:"奨学金を得た。"},
+  {g:"3",word:"oppose",ph:"/əˈpoʊz/",pos:"動詞",ja:"反対する",ex:"Many people opposed the decision.",exJa:"多くの人がその決定に反対した。"},
+  {g:"3",word:"organize",ph:"/ˈɔːrɡənaɪz/",pos:"動詞",ja:"組織する・まとめる",ex:"She organized the event perfectly.",exJa:"彼女は完璧にイベントを組織した。"},
+  {g:"3",word:"preserve",ph:"/prɪˈzɜːrv/",pos:"動詞",ja:"保存する・守る",ex:"We must preserve our traditions.",exJa:"伝統を守らなければならない。"},
+  {g:"3",word:"prioritize",ph:"/praɪˈɒrɪtaɪz/",pos:"動詞",ja:"優先する・優先順位をつける",ex:"Prioritize health over work.",exJa:"仕事より健康を優先しなさい。"},
+  {g:"3",word:"relate",ph:"/rɪˈleɪt/",pos:"動詞",ja:"関係する・関連づける",ex:"Can you relate to this story?",exJa:"この話に共感できますか？"},
+  {g:"3",word:"restrict",ph:"/rɪˈstrɪkt/",pos:"動詞",ja:"制限する・制約する",ex:"Access is restricted to members.",exJa:"アクセスはメンバーのみに制限されている。"},
+  {g:"3",word:"reveal",ph:"/rɪˈviːl/",pos:"動詞",ja:"明かす・明らかにする",ex:"The report revealed the truth.",exJa:"その報告書が真実を明らかにした。"},
+  {g:"3",word:"satisfy",ph:"/ˈsætɪsfaɪ/",pos:"動詞",ja:"満足させる",ex:"Nothing can satisfy him.",exJa:"何も彼を満足させられない。"},
+  {g:"3",word:"strengthen",ph:"/ˈstreŋθən/",pos:"動詞",ja:"強化する",ex:"We should strengthen ties between countries.",exJa:"国と国のつながりを強化すべきだ。"},
+  {g:"3",word:"struggle",ph:"/ˈstrʌɡəl/",pos:"動詞/名詞",ja:"苦労する・奮闘する",ex:"She struggled to find a job.",exJa:"彼女は仕事を見つけるのに苦労した。"},
+  {g:"3",word:"unite",ph:"/juˈnaɪt/",pos:"動詞",ja:"団結する・統一する",ex:"We must unite to solve this.",exJa:"これを解決するために団結しなければならない。"},
+  {g:"3",word:"reform",ph:"/rɪˈfɔːrm/",pos:"動詞/名詞",ja:"改革する・改革",ex:"The government reformed the tax system.",exJa:"政府が税制を改革した。"},
+  {g:"3",word:"survey",ph:"/ˈsɜːrveɪ/",pos:"動詞/名詞",ja:"調査する・アンケート",ex:"We conducted a survey on food habits.",exJa:"食習慣についてアンケートを行った。"},
+  {g:"3",word:"commit",ph:"/kəˈmɪt/",pos:"動詞",ja:"約束する・専念する",ex:"Commit to your studies.",exJa:"勉強に専念しなさい。"},
+  {g:"3",word:"modify",ph:"/ˈmɒdɪfaɪ/",pos:"動詞",ja:"修正する・変更する",ex:"We modified the plan.",exJa:"計画を修正した。"},
+  {g:"3",word:"overcome",ph:"/ˌoʊvərˈkʌm/",pos:"動詞",ja:"乗り越える・克服する",ex:"Overcome your fears.",exJa:"恐れを克服しなさい。"},
+  // 名詞
+  {g:"3",word:"authority",ph:"/ɔːˈθɒrɪti/",pos:"名詞",ja:"権威・当局・権限",ex:"She speaks with authority.",exJa:"彼女は権威を持って話す。"},
+  {g:"3",word:"burden",ph:"/ˈbɜːrdən/",pos:"名詞",ja:"負担・重荷",ex:"Don't be a burden to others.",exJa:"他人に負担をかけないようにして。"},
+  {g:"3",word:"capability",ph:"/ˌkeɪpəˈbɪlɪti/",pos:"名詞",ja:"能力・可能性",ex:"AI has great capabilities.",exJa:"AIは素晴らしい能力を持っている。"},
+  {g:"3",word:"circumstance",ph:"/ˈsɜːrkəmstæns/",pos:"名詞",ja:"状況・事情",ex:"The circumstances were difficult.",exJa:"状況は困難だった。"},
+  {g:"3",word:"civilization",ph:"/ˌsɪvɪlaɪˈzeɪʃən/",pos:"名詞",ja:"文明",ex:"Ancient civilizations were complex.",exJa:"古代文明は複雑だった。"},
+  {g:"3",word:"concern",ph:"/kənˈsɜːrn/",pos:"名詞/動詞",ja:"懸念・心配する",ex:"Climate change is a major concern.",exJa:"気候変動は大きな懸念事項だ。"},
+  {g:"3",word:"contribution",ph:"/ˌkɒntrɪˈbjuːʃən/",pos:"名詞",ja:"貢献・寄付",ex:"Her contribution to science is great.",exJa:"科学への彼女の貢献は大きい。"},
+  {g:"3",word:"crisis",ph:"/ˈkraɪsɪs/",pos:"名詞",ja:"危機",ex:"The world faces an energy crisis.",exJa:"世界はエネルギー危機に直面している。"},
+  {g:"3",word:"curiosity",ph:"/ˌkjʊəriˈɒsɪti/",pos:"名詞",ja:"好奇心",ex:"Curiosity drives learning.",exJa:"好奇心が学びを促進する。"},
+  {g:"3",word:"declaration",ph:"/ˌdeklərˈeɪʃən/",pos:"名詞",ja:"宣言・申告",ex:"The declaration was signed in 1776.",exJa:"その宣言は1776年に署名された。"},
+  {g:"3",word:"democracy",ph:"/dɪˈmɒkrəsi/",pos:"名詞",ja:"民主主義",ex:"Democracy values the will of the people.",exJa:"民主主義は人々の意思を大切にする。"},
+  {g:"3",word:"discrimination",ph:"/dɪˌskrɪmɪˈneɪʃən/",pos:"名詞",ja:"差別",ex:"We must fight against discrimination.",exJa:"差別と戦わなければならない。"},
+  {g:"3",word:"expectation",ph:"/ˌekspekˈteɪʃən/",pos:"名詞",ja:"期待・予想",ex:"She met everyone's expectations.",exJa:"彼女はみんなの期待に応えた。"},
+  {g:"3",word:"foundation",ph:"/faʊnˈdeɪʃən/",pos:"名詞",ja:"基盤・財団",ex:"Education is the foundation of success.",exJa:"教育は成功の基盤だ。"},
+  {g:"3",word:"globalization",ph:"/ˌɡloʊbəlaɪˈzeɪʃən/",pos:"名詞",ja:"グローバル化",ex:"Globalization connects the world.",exJa:"グローバル化が世界をつなぐ。"},
+  {g:"3",word:"humanity",ph:"/hjuːˈmænɪti/",pos:"名詞",ja:"人類・人間性",ex:"We share a common humanity.",exJa:"私たちは人間としての共通点を持っている。"},
+  {g:"3",word:"impact",ph:"/ˈɪmpækt/",pos:"名詞",ja:"影響・衝撃",ex:"Technology has a huge impact on life.",exJa:"テクノロジーは生活に大きな影響を与える。"},
+  {g:"3",word:"individual",ph:"/ˌɪndɪˈvɪdʒuəl/",pos:"名詞/形容詞",ja:"個人・個々の",ex:"Every individual has rights.",exJa:"すべての個人に権利がある。"},
+  {g:"3",word:"inequality",ph:"/ˌɪnɪˈkwɒlɪti/",pos:"名詞",ja:"不平等",ex:"Income inequality is increasing.",exJa:"所得の不平等が拡大している。"},
+  {g:"3",word:"institution",ph:"/ˌɪnstɪˈtjuːʃən/",pos:"名詞",ja:"機関・制度",ex:"Schools are important institutions.",exJa:"学校は重要な機関だ。"},
+  {g:"3",word:"interaction",ph:"/ˌɪntərˈækʃən/",pos:"名詞",ja:"相互作用・交流",ex:"Social interaction is vital for humans.",exJa:"社会的交流は人間にとって不可欠だ。"},
+  {g:"3",word:"media",ph:"/ˈmiːdiə/",pos:"名詞",ja:"メディア",ex:"Social media connects people.",exJa:"ソーシャルメディアが人々をつなぐ。"},
+  {g:"3",word:"mission",ph:"/ˈmɪʃən/",pos:"名詞",ja:"使命・任務",ex:"Our mission is to help others.",exJa:"私たちの使命は他者を助けることだ。"},
+  {g:"3",word:"network",ph:"/ˈnetwɜːrk/",pos:"名詞",ja:"ネットワーク・つながり",ex:"Build a strong social network.",exJa:"強力な人間関係を築きなさい。"},
+  {g:"3",word:"objective",ph:"/əbˈdʒektɪv/",pos:"名詞/形容詞",ja:"目標・客観的な",ex:"Set clear objectives.",exJa:"明確な目標を設定しなさい。"},
+  {g:"3",word:"obstacle",ph:"/ˈɒbstəkəl/",pos:"名詞",ja:"障害・妨げ",ex:"Every obstacle is a chance to grow.",exJa:"すべての障害は成長のチャンスだ。"},
+  {g:"3",word:"outcome",ph:"/ˈaʊtkʌm/",pos:"名詞",ja:"結果・成果",ex:"The outcome was better than expected.",exJa:"結果は予想以上だった。"},
+  {g:"3",word:"phenomenon",ph:"/fɪˈnɒmɪnɒn/",pos:"名詞",ja:"現象",ex:"Global warming is a serious phenomenon.",exJa:"地球温暖化は深刻な現象だ。"},
+  {g:"3",word:"principle",ph:"/ˈprɪnsɪpəl/",pos:"名詞",ja:"原則・原理",ex:"She lives by strong principles.",exJa:"彼女は強い原則に従って生きている。"},
+  {g:"3",word:"privilege",ph:"/ˈprɪvɪlɪdʒ/",pos:"名詞",ja:"特権・特典",ex:"Education is a privilege.",exJa:"教育は特権だ。"},
+  {g:"3",word:"recognition",ph:"/ˌrekəɡˈnɪʃən/",pos:"名詞",ja:"認識・承認・評価",ex:"She deserves recognition for her work.",exJa:"彼女は仕事に対して評価を受けるべきだ。"},
+  {g:"3",word:"strategy",ph:"/ˈstrætɪdʒi/",pos:"名詞",ja:"戦略",ex:"We need a new strategy.",exJa:"新しい戦略が必要だ。"},
+  {g:"3",word:"tension",ph:"/ˈtenʃən/",pos:"名詞",ja:"緊張・緊張感",ex:"There is tension between the two countries.",exJa:"2国間に緊張がある。"},
+  {g:"3",word:"trend",ph:"/trend/",pos:"名詞",ja:"傾向・トレンド",ex:"What are the latest trends?",exJa:"最新のトレンドは何ですか？"},
+  {g:"3",word:"bias",ph:"/ˈbaɪəs/",pos:"名詞",ja:"偏見・バイアス",ex:"We all have unconscious biases.",exJa:"私たちは皆、無意識の偏見を持っている。"},
+  {g:"3",word:"boundary",ph:"/ˈbaʊndəri/",pos:"名詞",ja:"境界・限界",ex:"Know your limits and boundaries.",exJa:"自分の限界と境界を知りなさい。"},
+  {g:"3",word:"consciousness",ph:"/ˈkɒnʃəsnəs/",pos:"名詞",ja:"意識・自覚",ex:"Environmental consciousness is growing.",exJa:"環境意識が高まっている。"},
+  {g:"3",word:"transformation",ph:"/ˌtrænsfəˈmeɪʃən/",pos:"名詞",ja:"変容・変革",ex:"Digital transformation is happening now.",exJa:"デジタル変革が今起きている。"},
+  {g:"3",word:"prosperity",ph:"/prɒˈsperɪti/",pos:"名詞",ja:"繁栄・豊かさ",ex:"We wish for world prosperity.",exJa:"世界の繁栄を願う。"},
+  {g:"3",word:"logic",ph:"/ˈlɒdʒɪk/",pos:"名詞",ja:"論理・道理",ex:"Use logic to solve problems.",exJa:"論理を使って問題を解決しなさい。"},
+  // 形容詞
+  {g:"3",word:"abstract",ph:"/ˈæbstrækt/",pos:"形容詞",ja:"抽象的な",ex:"Art can be abstract.",exJa:"芸術は抽象的なこともある。"},
+  {g:"3",word:"appropriate",ph:"/əˈproʊpriɪt/",pos:"形容詞",ja:"適切な",ex:"Choose appropriate words.",exJa:"適切な言葉を選びなさい。"},
+  {g:"3",word:"beneficial",ph:"/ˌbenɪˈfɪʃəl/",pos:"形容詞",ja:"有益な・役に立つ",ex:"Exercise is beneficial to health.",exJa:"運動は健康に有益だ。"},
+  {g:"3",word:"complex",ph:"/ˈkɒmpleks/",pos:"形容詞",ja:"複雑な",ex:"This is a complex problem.",exJa:"これは複雑な問題だ。"},
+  {g:"3",word:"comprehensive",ph:"/ˌkɒmprɪˈhensɪv/",pos:"形容詞",ja:"包括的な・総合的な",ex:"We need a comprehensive plan.",exJa:"包括的な計画が必要だ。"},
+  {g:"3",word:"controversial",ph:"/ˌkɒntrəˈvɜːrʃəl/",pos:"形容詞",ja:"論争的な・物議を醸す",ex:"This is a controversial topic.",exJa:"これは物議を醸すトピックだ。"},
+  {g:"3",word:"crucial",ph:"/ˈkruːʃəl/",pos:"形容詞",ja:"極めて重要な",ex:"This is a crucial moment.",exJa:"これは極めて重要な瞬間だ。"},
+  {g:"3",word:"fundamental",ph:"/ˌfʌndəˈmentəl/",pos:"形容詞",ja:"根本的な・基本的な",ex:"Education is a fundamental right.",exJa:"教育は基本的な権利だ。"},
+  {g:"3",word:"inevitable",ph:"/ɪnˈevɪtəbəl/",pos:"形容詞",ja:"避けられない",ex:"Change is inevitable.",exJa:"変化は避けられない。"},
+  {g:"3",word:"influential",ph:"/ˌɪnfluˈenʃəl/",pos:"形容詞",ja:"影響力のある",ex:"She is an influential writer.",exJa:"彼女は影響力のある作家だ。"},
+  {g:"3",word:"logical",ph:"/ˈlɒdʒɪkəl/",pos:"形容詞",ja:"論理的な",ex:"Make logical decisions.",exJa:"論理的な決断をしなさい。"},
+  {g:"3",word:"mature",ph:"/məˈtjʊər/",pos:"形容詞",ja:"成熟した・大人の",ex:"She is mature for her age.",exJa:"彼女は年齢の割に成熟している。"},
+  {g:"3",word:"persistent",ph:"/pəˈsɪstənt/",pos:"形容詞",ja:"粘り強い・しつこい",ex:"Be persistent in your efforts.",exJa:"努力において粘り強くあれ。"},
+  {g:"3",word:"progressive",ph:"/prəˈɡresɪv/",pos:"形容詞",ja:"進歩的な",ex:"She has progressive ideas.",exJa:"彼女は進歩的な考えを持っている。"},
+  {g:"3",word:"reliable",ph:"/rɪˈlaɪəbəl/",pos:"形容詞",ja:"信頼できる",ex:"He is a reliable person.",exJa:"彼は信頼できる人だ。"},
+  {g:"3",word:"sufficient",ph:"/səˈfɪʃənt/",pos:"形容詞",ja:"十分な",ex:"One hour is not sufficient.",exJa:"1時間では十分ではない。"},
+  {g:"3",word:"urgent",ph:"/ˈɜːrdʒənt/",pos:"形容詞",ja:"緊急の・切迫した",ex:"This is an urgent matter.",exJa:"これは緊急の問題だ。"},
+  {g:"3",word:"valuable",ph:"/ˈvæljuəbəl/",pos:"形容詞",ja:"価値ある・貴重な",ex:"Your feedback is valuable.",exJa:"あなたのフィードバックは価値がある。"},
+  {g:"3",word:"vulnerable",ph:"/ˈvʌlnərəbəl/",pos:"形容詞",ja:"脆弱な・傷つきやすい",ex:"Children are vulnerable.",exJa:"子どもは傷つきやすい。"},
+  {g:"3",word:"flexible",ph:"/ˈfleksɪbəl/",pos:"形容詞",ja:"柔軟な・融通が利く",ex:"Be flexible in your approach.",exJa:"アプローチに柔軟性を持って。"},
+];
+
+// ═══════════════════════════════════════
+//  BADGE DEFINITIONS
+// ═══════════════════════════════════════
+const BADGES = [
+  {id:"first",    emoji:"🌱",name:"最初の一歩",     desc:"初めてカードを答えた",     check: s => s.totalAnswered >= 1},
+  {id:"streak3",  emoji:"🔥",name:"3日連続",        desc:"3日間連続で学習した",      check: s => s.streak >= 3},
+  {id:"streak7",  emoji:"💎",name:"1週間継続",      desc:"7日間連続で学習した",      check: s => s.streak >= 7},
+  {id:"ok10",     emoji:"⭐",name:"10問正解",        desc:"10問正解した",             check: s => s.totalOk >= 10},
+  {id:"ok30",     emoji:"🌟",name:"30問正解",        desc:"30問正解した",             check: s => s.totalOk >= 30},
+  {g:"1",id:"grade1",  emoji:"📘",name:"中1マスター",    desc:"中1単語を全問クリア",      check: s => s.grade1Cleared},
+  {g:"2",id:"grade2",  emoji:"📗",name:"中2マスター",    desc:"中2単語を全問クリア",      check: s => s.grade2Cleared},
+  {g:"3",id:"grade3",  emoji:"📕",name:"中3マスター",    desc:"中3単語を全問クリア",      check: s => s.grade3Cleared},
+  {id:"all",      emoji:"🏆",name:"全単語制覇",      desc:"全480語以上をクリアした",   check: s => s.allCleared},
+  {id:"lv5",      emoji:"💫",name:"Lv.5到達",        desc:"レベル5に達した",          check: s => s.level >= 5},
+  {id:"lv10",     emoji:"🎖️",name:"Lv.10到達",       desc:"レベル10に達した",         check: s => s.level >= 10},
+  {id:"xp500",    emoji:"💰",name:"XP500達成",        desc:"累計500XP獲得",            check: s => s.totalXp >= 500},
+];
+
+// XP levels
+const LEVEL_XP = [0,50,120,220,350,520,730,980,1280,1630,2030];
+function xpToLevel(xp) {
+  for (let i = LEVEL_XP.length-1; i >= 0; i--) if (xp >= LEVEL_XP[i]) return i+1;
+  return 1;
+}
+function levelProgress(xp) {
+  const lv = xpToLevel(xp);
+  if (lv >= LEVEL_XP.length) return {pct:100, cur:0, next:0};
+  const base = LEVEL_XP[lv-1], next = LEVEL_XP[lv];
+  return { pct:Math.round((xp-base)/(next-base)*100), cur:xp-base, next:next-base };
+}
+
+// ═══════════════════════════════════════
+//  STATE & STORAGE
+// ═══════════════════════════════════════
+let state;
+function loadState() {
+  try { state = JSON.parse(localStorage.getItem('chuugaku_state') || 'null'); } catch{}
+  if (!state) state = defaultState();
+}
+function defaultState() {
+  return {
+    xp:0, level:1, streak:0, lastDate:'',
+    totalOk:0, totalAnswered:0, totalXp:0,
+    badges:[],
+    grade1Cleared:false, grade2Cleared:false, grade3Cleared:false, allCleared:false,
+  };
+}
+function saveState() { localStorage.setItem('chuugaku_state', JSON.stringify(state)); }
+
+// ═══════════════════════════════════════
+//  SESSION
+// ═══════════════════════════════════════
+let deck = [];
+let idx = 0;
+let isFlipped = false;
+let sessionResults = {};
+let currentGrade = 'all';
+
+function setGrade(g) {
+  currentGrade = g;
+  document.querySelectorAll('.grade-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.g === g);
+  });
+  buildDeck();
+}
+function buildDeck() {
+  deck = currentGrade === 'all' ? [...WORDS] : WORDS.filter(w => w.g === currentGrade);
+  shuffleArr(deck);
+  idx = 0; sessionResults = {};
+  renderCard();
+  updateProgress();
+}
+function shuffleDeck() { shuffleArr(deck); idx = 0; sessionResults = {}; renderCard(); updateProgress(); }
+function resetSession() { buildDeck(); }
+
+function shuffleArr(a) {
+  for (let i = a.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+}
+
+// ═══════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════
+function renderCard() {
+  if (idx >= deck.length) { showResultPanel(); return; }
+  const w = deck[idx];
+  document.getElementById('frontGrade').textContent = '中' + w.g;
+  document.getElementById('frontWord').textContent = w.word;
+  document.getElementById('frontPhonetic').textContent = w.ph;
+  document.getElementById('backPos').textContent = w.pos;
+  document.getElementById('backMeaning').textContent = w.ja;
+  document.getElementById('backExample').textContent = '📝 ' + w.ex;
+  document.getElementById('backExampleJa').textContent = w.exJa;
+  isFlipped = false;
+  const card = document.getElementById('card');
+  card.className = '';
+  document.getElementById('flipRow').style.display = 'flex';
+  document.getElementById('judgeRow').style.display = 'none';
+}
+
+function flipCard() {
+  isFlipped = !isFlipped;
+  document.getElementById('card').classList.toggle('flipped', isFlipped);
+  if (isFlipped) {
+    document.getElementById('flipRow').style.display = 'none';
+    document.getElementById('judgeRow').style.display = 'flex';
+  } else {
+    document.getElementById('flipRow').style.display = 'flex';
+    document.getElementById('judgeRow').style.display = 'none';
+  }
+}
+
+function updateProgress() {
+  const total = deck.length;
+  const done = Object.keys(sessionResults).length;
+  const pct = total > 0 ? Math.round(done/total*100) : 0;
+  document.getElementById('progText').textContent = (idx+1) + ' / ' + total;
+  document.getElementById('progPct').textContent = pct + '%';
+  document.getElementById('progFill').style.width = pct + '%';
+}
+
+// ═══════════════════════════════════════
+//  JUDGE
+// ═══════════════════════════════════════
+function judge(ok) {
+  if (!isFlipped) return;
+  const w = deck[idx];
+  sessionResults[w.word] = ok;
+  const xpGain = ok ? 15 : 5;
+
+  // State update
+  const prevLevel = state.level;
+  state.xp += xpGain;
+  state.totalXp += xpGain;
+  state.totalAnswered++;
+  if (ok) state.totalOk++;
+  state.level = xpToLevel(state.xp);
+  updateStreak();
+  saveState();
+  updateHeader();
+
+  // Level up?
+  if (state.level > prevLevel) showLevelUp(state.level);
+
+  // Animate card out
+  const card = document.getElementById('card');
+  card.classList.remove('flipped');
+  card.classList.add(ok ? 'swipe-ok' : 'swipe-ng');
+  showToast((ok ? '✓ +15 XP 🎉' : '✗ +5 XP') );
+
+  setTimeout(() => {
+    idx++;
+    checkClearBadges();
+    checkBadges();
+    updateProgress();
+    renderCard();
+  }, 380);
+}
+
+// ═══════════════════════════════════════
+//  STREAK
+// ═══════════════════════════════════════
+function updateStreak() {
+  const today = new Date().toLocaleDateString('ja-JP');
+  if (state.lastDate === today) return;
+  const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('ja-JP');
+  if (state.lastDate === yesterday) {
+    state.streak++;
+  } else {
+    state.streak = 1;
+  }
+  state.lastDate = today;
+}
+
+// ═══════════════════════════════════════
+//  HEADER
+// ═══════════════════════════════════════
+function updateHeader() {
+  const lv = state.level;
+  const prog = levelProgress(state.xp);
+  document.getElementById('streakDisplay').textContent = '🔥' + state.streak;
+  document.getElementById('xpLabel').textContent = 'Lv.' + lv;
+  document.getElementById('xpNum').textContent = state.xp + ' XP';
+  document.getElementById('xpBar').style.width = prog.pct + '%';
+  document.getElementById('levelLabel').textContent = 'Lv.' + lv;
+}
+
+// ═══════════════════════════════════════
+//  BADGES
+// ═══════════════════════════════════════
+function checkClearBadges() {
+  const g1done = WORDS.filter(w=>w.g==='1').every(w=>w.word in sessionResults);
+  const g2done = WORDS.filter(w=>w.g==='2').every(w=>w.word in sessionResults);
+  const g3done = WORDS.filter(w=>w.g==='3').every(w=>w.word in sessionResults);
+  if (g1done) state.grade1Cleared = true;
+  if (g2done) state.grade2Cleared = true;
+  if (g3done) state.grade3Cleared = true;
+  if (g1done && g2done && g3done) state.allCleared = true;
+}
+
+function checkBadges() {
+  BADGES.forEach(b => {
+    if (!state.badges.includes(b.id) && b.check(state)) {
+      state.badges.push(b.id);
+      saveState();
+      showBadgePopup(b);
+    }
+  });
+}
+
+function showBadgePopup(b) {
+  document.getElementById('bpEmoji').textContent = b.emoji;
+  document.getElementById('bpName').textContent  = b.name;
+  const el = document.getElementById('badgePopup');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ═══════════════════════════════════════
+//  LEVEL UP
+// ═══════════════════════════════════════
+const LEVEL_TITLES = ['','見習い','初級者','中級者','上級者','達人','エース','スーパースター','レジェンド','神','究極'];
+function showLevelUp(lv) {
+  document.getElementById('luLevel').textContent = 'Lv.' + lv;
+  document.getElementById('luSub').textContent = LEVEL_TITLES[Math.min(lv, LEVEL_TITLES.length-1)] || 'マスター';
+  const el = document.getElementById('levelUp');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ═══════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1400);
+}
+
+// ═══════════════════════════════════════
+//  RESULT PANEL
+// ═══════════════════════════════════════
+function showResultPanel() {
+  const total = deck.length;
+  const ok    = Object.values(sessionResults).filter(v=>v).length;
+  const ng    = total - ok;
+  const pct   = Math.round(ok/total*100);
+  const emoji = pct>=90?'🏆':pct>=70?'🌟':pct>=50?'😊':'💪';
+  const msg   = pct>=90?'パーフェクト！':pct>=70?'よくできました！':pct>=50?'もう少し！':'まだまだこれから！';
+
+  const html = `
+    <div class="result-emoji">${emoji}</div>
+    <div class="panel-title">${msg}</div>
+    <div class="panel-sub">全 ${total} 問完了</div>
+    <div class="result-score">${pct}%</div>
+    <div class="result-detail">${ok} 問正解 / ${ng} 問不正解</div>
+    <div class="result-grid">
+      <div class="result-box"><div class="result-num ok">${ok}</div><div class="result-lbl">✓ 知ってた</div></div>
+      <div class="result-box"><div class="result-num ng">${ng}</div><div class="result-lbl">✗ 知らなかった</div></div>
+    </div>
+    <button class="btn-panel" onclick="closeOverlay();shuffleDeck()">🔁 もう一度</button>
+    <button class="btn-panel-outline" onclick="closeOverlay();openBadgePanel()">🏅 バッジを見る</button>
+  `;
+  document.getElementById('panelContent').innerHTML = html;
+  document.getElementById('overlay').classList.add('show');
+}
+
+// ═══════════════════════════════════════
+//  BADGE PANEL
+// ═══════════════════════════════════════
+function openBadgePanel() {
+  const earned = state.badges;
+  const rows = BADGES.map(b => {
+    const e = earned.includes(b.id);
+    return `<div class="badge-item ${e?'earned':''}">
+      <div class="badge-icon">${b.emoji}</div>
+      <div class="badge-name">${b.name}</div>
+    </div>`;
+  }).join('');
+  const html = `
+    <div class="panel-title">🏅 実績バッジ</div>
+    <div class="panel-sub">${earned.length} / ${BADGES.length} 獲得</div>
+    <div class="badge-grid">${rows}</div>
+    <button class="btn-panel-outline" onclick="closeOverlay()">閉じる</button>
+  `;
+  document.getElementById('panelContent').innerHTML = html;
+  document.getElementById('overlay').classList.add('show');
+}
+
+function closeOverlay() { document.getElementById('overlay').classList.remove('show'); }
+
+// ═══════════════════════════════════════
+//  MENU
+// ═══════════════════════════════════════
+function openMenu() { document.getElementById('menuPanel').classList.add('show'); }
+function closeMenu() { document.getElementById('menuPanel').classList.remove('show'); }
+
+function resetAllData() {
+  if (!confirm('全データをリセットします。よろしいですか？')) return;
+  localStorage.removeItem('chuugaku_state');
+  state = defaultState();
+  saveState();
+  updateHeader();
+  buildDeck();
+  showToast('データをリセットしました');
+}
+
+// ═══════════════════════════════════════
+//  TOUCH / SWIPE
+// ═══════════════════════════════════════
+let touchStartX = 0, touchStartY = 0, isDragging = false;
+const cardWrap = document.getElementById('cardWrap');
+const drag = document.getElementById('dragIndicator');
+
+cardWrap.addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  isDragging = true;
+}, {passive:true});
+
+cardWrap.addEventListener('touchmove', e => {
+  if (!isDragging) return;
+  const dx = e.touches[0].clientX - touchStartX;
+  const dy = e.touches[0].clientY - touchStartY;
+  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
+    document.getElementById('card').style.transform =
+      `translateX(${dx*0.4}px) rotate(${dx*0.03}deg)` + (isFlipped?' rotateY(180deg)':'');
+    if (Math.abs(dx) > 40) {
+      drag.textContent = dx > 0 ? '✓' : '✗';
+      drag.style.color = dx > 0 ? '#4ade80' : '#f87171';
+      drag.style.opacity = Math.min(1, (Math.abs(dx)-40)/60);
+    } else {
+      drag.style.opacity = 0;
+    }
+  }
+}, {passive:true});
+
+cardWrap.addEventListener('touchend', e => {
+  if (!isDragging) return;
+  isDragging = false;
+  drag.style.opacity = 0;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  document.getElementById('card').style.transform = '';
+  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 60) {
+    if (!isFlipped) {
+      // flip on any horizontal swipe if not flipped
+      flipCard();
+    } else {
+      judge(dx > 0);
+    }
+  } else if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+    flipCard();
+  }
+});
+
+// Mouse click fallback
+cardWrap.addEventListener('click', e => {
+  if (!isDragging) flipCard();
+});
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipCard(); }
+  if (e.key === 'ArrowRight' && isFlipped) judge(true);
+  if (e.key === 'ArrowLeft'  && isFlipped) judge(false);
+  if ((e.key==='o'||e.key==='O') && isFlipped) judge(true);
+  if ((e.key==='x'||e.key==='X') && isFlipped) judge(false);
+});
+
+// ═══════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════
+loadState();
+updateStreak();
+saveState();
+updateHeader();
+checkBadges();
+buildDeck();
+</script>
+</body>
+</html>
